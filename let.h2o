@@ -1,0 +1,6 @@
+
+Let           = Let:( LetAssign+ )
+LetAssign     = LetAssign:( Value, ParameterName )
+Value         = Value:(Name)
+ParameterName = ParameterName:(Symbol)
+Symbol        = Symbol:

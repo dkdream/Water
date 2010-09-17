@@ -1,0 +1,16 @@
+:*
+*~
+*.s
+*.o
+*.x
+*_hold
+*.run
+*.log
+.depends
+*.vm
+*.a
+water.c
+
+
+
+
