@@ -1,11 +1,12 @@
 # Copper Grammar for water
 # Parser syntax
 
+file = ( rule )+ end-of-file
+
 rule = NAME EQUAL ( tree | leaf ) @define # stack: identifier node -> __
      | space
      | comment
      | end-of-line
-     | end-of-file @done
 
 tree = LABEL OPEN regex CLOSE @tree # stack: label node -> node
 leaf = LABEL @leaf                  # stack: label -> node

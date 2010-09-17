@@ -126,8 +126,8 @@ libWater.a : $(C_SOURCES:%.c=%.o)
 	$(COPPER) --name $(@:%.c=%_graph) --output $@ --file $<
 
 %.run : %.h2o $(WATER.test)
-	@echo $(WATER.test) $(RUNFLAGS) $<
-	@$(WATER.test) $(RUNFLAGS) $< >$@ 2>&1 || ( cat $@ ; rm -f $@; false )
+	@echo ./$(WATER.test) $(RUNFLAGS) --file $<
+	@./$(WATER.test) $(RUNFLAGS) --file $< >$@ || ( cat $@ ; rm -f $@; false )
 	@cat $@
 	@echo '==============================================================='
 
