@@ -3,32 +3,41 @@
 
 file = ( rule )+ end-of-file
 
-rule = NAME EQUAL ( tree | leaf ) @define # stack: identifier node -> __
+rule = NAME EQUAL ( tree | leaf ) @define
      | space
      | comment
      | end-of-line
 
-tree = LABEL OPEN regex CLOSE @tree # stack: label node -> node
-leaf = LABEL @leaf                  # stack: label -> node
+tree = LABEL ( assign )? regex @tree
+leaf = LABEL ( assign )?       @leaf
 
-regex   = @start choice  ( COMMA choice  )* @end @tuble  # stack: List<node> -> node
-choice  = @start primary ( BAR   primary )* @end @select # stack: List<node> -> node
-primary = prefix ( operator )?                           # see operator
+regex = OPEN @start choice ( COMMA choice )+ @end CLOSE @tuble
+      | OPEN choice CLOSE
 
-prefix  = IDENTIFIER @reference # stack: identifier -> node
-        | tree                  # see tree
-        | OPEN regex CLOSE      # see regex
+choice = @start primary ( BAR primary )+ @end @select
+       | primary
+        
+primary = OPEN IDENTIFIER assign @reference CLOSE ( operator )?
+        | IDENTIFIER assign @reference
+        | IDENTIFIER @reference ( operator )?
+        | tree  ( operator )?
+        | leaf  ( operator )?
+        | regex ( operator )?
 
-operator = STAR     @zero_plus  # stack: node -> node
-         | PLUS     @one_plus   # stack: node -> node
-         | OPTIONAL @maybe      # stack: node -> node
-         | range    @min_max    # stack: node range -> node
 
-range    = SOPEN NUMBER DASH NUMBER SCLOSE @range # stack: number number
+operator = STAR     @zero_plus
+         | PLUS     @one_plus
+         | OPTIONAL @maybe
+         | range    @min_max
+
+assign = ASSIGN @assign # stack: name variable 
+
+range = SOPEN NUMBER DASH NUMBER SCLOSE @range
 
 IDENTIFIER = NAME !EQUAL
-NAME       = < [a-zA-Z_][-a-zA-Z_0-9]* > !':' @identifier -
-LABEL      = < [a-zA-Z_][-a-zA-Z_0-9]* > ':'  @label      -
+NAME       = < name-head  name-tail > !( ':' ) @identifier -
+LABEL      = < label-head name-tail >    ':'   @label -
+ASSIGN     = '->' blank? < variable-head variable-tail >  @variable -
 NUMBER     = < [0-9]+ > @number -
 EQUAL      = '=' -
 STAR       = '*' -
@@ -41,7 +50,14 @@ CLOSE      = ')' -
 SOPEN      = '[' -
 SCLOSE     = ']' -
 
+name-head     = [A-Z]
+label-head    = [a-zA-Z]
+variable-head = [a-z]
+name-tail     = ( [-_]? ( [a-zA-Z0-9] )+ )*
+variable-tail = ( [-_]? ( [a-z0-9] )+ )*
+
 -           = (space | comment)*
+blank       = ( ' ' | '\t' )+
 space       = ' ' | '\t' | '\r\n' | '\n' | '\r'
 comment     = '#' ( !end-of-line .)*
 end-of-line = '\r\n' | '\n' | '\r'

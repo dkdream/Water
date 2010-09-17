@@ -292,7 +292,7 @@ static bool tag_collection(Water water, unsigned count, const char* type) {
         return false;
     }
 
-    if (!syntax_Create(symbol, 1, at, &at[1].syntax)) return false;
+    if (!syntax_Make(symbol, at[0].list, &at[1].syntax)) return false;
 
     if (!stack_Push(parse, at[1])) return false;
 
@@ -308,6 +308,15 @@ static bool define_event(PrsInput input, PrsCursor location) {
     print_State(water, true, "%s", event_name);
 
     if (!tag_collection(water, 2, "define")) return false;
+
+    if (0 < h2o_global_debug) {
+        Stack parse = water->state.parse;
+        Node value;
+        if (stack_Top(parse, &value)) {
+            node_PrintTree(stdout, 0, value);
+            printf("%s", "\n");
+        }
+    }
 
     print_State(water, false, "%s", event_name);
     return true;
@@ -559,7 +568,7 @@ static bool tree_event(PrsInput input, PrsCursor location) {
     Water water = (Water) input;
     print_State(water, true, "%s", event_name);
 
-    if (!tag_collection(water, 2, "tuple")) return false;
+    if (!tag_collection(water, 2, "tree")) return false;
 
     print_State(water, false, "%s", event_name);
     return true;
@@ -592,7 +601,46 @@ static bool zero_plus_event(PrsInput input, PrsCursor location) {
     (void) rule_name;
 }
 
+static bool variable_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "identifier";
+    const char *rule_name  = "unknown";
+    Water water = (Water) input;
+    print_State(water, true, "%s", event_name);
 
+    PrsData text;
+
+    if (!cu_MarkedText(input, &text)) return false;
+
+    Stack parse = water->state.parse;
+    Node *at    = 0;
+
+    parser_Live(water, 1, &at);
+
+    symbol_Create(text, &at[0].symbol);
+
+    stack_Push(parse, at[0]);
+
+    tag_node(water, "variable");
+
+    print_State(water, false, "%s", event_name);
+    return true;
+    (void) event_name;
+    (void) rule_name;
+}
+
+static bool assign_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "tree";
+    const char *rule_name  = "unknown";
+    Water water = (Water) input;
+    print_State(water, true, "%s", event_name);
+
+    if (!tag_collection(water, 2, "assign")) return false;
+
+    print_State(water, false, "%s", event_name);
+    return true;
+    (void) event_name;
+    (void) rule_name;
+}
 
 /***********************************************************/
 
@@ -626,7 +674,9 @@ static void doParse(Water water)
     }
 
     if (!cu_Parse("file", (PrsInput)water)) {
-        printf("syntax error\n");
+        cu_SyntaxError(stderr,
+                       (PrsInput) water,
+                       water->buffer.filename);
         return;
     }
 
@@ -771,6 +821,8 @@ int main(int argc, char **argv)
     water_SetEvent(water, "tree", tree_event);
     water_SetEvent(water, "tuble", tuble_event);
     water_SetEvent(water, "zero_plus", zero_plus_event);
+    water_SetEvent(water, "variable", variable_event);
+    water_SetEvent(water, "assign", assign_event);
 
     water_graph((PrsInput) water);
 
