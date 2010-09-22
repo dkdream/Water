@@ -52,8 +52,8 @@ RANLIB := ranlib
 #
 MAINS     := water_main.c
 LANGS     := water.cu
-C_SOURCES := $(filter-out $(MAINS) $(LANGS:%.cu=%.c),$(notdir $(wildcard *.c)))
-H_SOURCES := $(filter-out water.h, $(notdir $(wildcard *.h)))
+C_SOURCES := $(filter-out $(MAINS) $(LANGS:%.cu=%.c) compiler.c,$(notdir $(wildcard *.c)))
+H_SOURCES := $(filter-out water.h compiler.h, $(notdir $(wildcard *.h)))
 
 ASMS    := $(C_SOURCES:%.c=%.s)
 OBJS    := $(C_SOURCES:%.c=%.o)
@@ -89,7 +89,7 @@ scrub ::
 	@make clean
 	rm -f $(LANGS:%.cu=%.c)
 
-water.vm : water_main.o $(LANGS:%.cu=%.o) libWater.a 
+water.vm : water_main.o $(LANGS:%.cu=%.o)  compiler.o libWater.a 
 	$(GCC) $(CFLAGS) -o $@ $^ $(LIBFLAGS)
 
 water.o : water.c  ; $(GCC) $(DBFLAGS) $(INCFLAGS) -c -o $@ $<
