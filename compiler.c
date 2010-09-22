@@ -90,7 +90,6 @@ static inline void node_Print(FILE* output, H2oNode value) {
     }
 
     H2oType type = value.any->type;
-    const char* name = type2name(type);
 
     switch (type) {
     case water_define: {
@@ -98,7 +97,7 @@ static inline void node_Print(FILE* output, H2oNode value) {
         node_Print(output, value.define->name);
         fprintf(output, "]");
         return;
-    } break;
+    }
     case water_identifer: {
         const char* text = value.text->value.start;
         unsigned  length = value.text->value.length;
@@ -116,42 +115,43 @@ static inline void node_Print(FILE* output, H2oNode value) {
         unsigned  length = value.variable->value.length;
         fprintf(output, "->%*.*s", length, length, text);
         return;
-    } break;
-    case water_thunk:     { } break;
+    }
+    case water_thunk:
+        break;
     case water_not:       {
         fprintf(output, "[");
         node_Print(output, value.operator->value);
         fprintf(output, "]!");
         return;
-    } break;
+    }
     case water_assert:    {
         fprintf(output, "[");
         node_Print(output, value.operator->value);
         fprintf(output, "]&");
         return;
-    } break;
+    }
     case water_zero_plus: {
         fprintf(output, "[");
         node_Print(output, value.operator->value);
         fprintf(output, "]*");
         return;
-    } break;
+    }
     case water_one_plus:  {
         fprintf(output, "[");
         node_Print(output, value.operator->value);
         fprintf(output, "]+");
         return;
-    } break;
+    }
     case water_maybe:     {
         fprintf(output, "[");
         node_Print(output, value.operator->value);
         fprintf(output, "]?");
         return;
-    } break;
+    }
     case water_count:     {
         fprintf(output, "%u", value.count->count);
         return;
-    } break;
+    }
     case water_range:     {
         fprintf(output, "[");
         node_Print(output, value.range->value);
@@ -161,52 +161,52 @@ static inline void node_Print(FILE* output, H2oNode value) {
         node_Print(output, value.range->max);
         fprintf(output, "}");
         return;
-    } break;
+    }
     case water_select:    {
         fprintf(output, "[");
         node_Print(output, value.branch->before);
-        fprintf(output, " ");
+        fprintf(output, "/");
         node_Print(output, value.branch->after);
-        fprintf(output, "]/");
+        fprintf(output, "]");
         return;
-    } break;
+    }
     case water_tuple:     {
         fprintf(output, "[");
         node_Print(output, value.branch->before);
-        fprintf(output, " ");
+        fprintf(output, ",");
         node_Print(output, value.branch->after);
-        fprintf(output, "],");
+        fprintf(output, "]");
         return;
-    } break;
+    }
     case water_assign:    {
        fprintf(output, "assign[");
        node_Print(output, value.assign->label);
        node_Print(output, value.assign->variable);
        fprintf(output, "]");
        return;
-    } break;
+    }
     case water_leaf:      {
         node_Print(output, value.operator->value);
         fprintf(output, "()");
         return;
-    } break;
+    }
     case water_tree:      {
         node_Print(output, value.tree->reference);
         fprintf(output, "(");
         node_Print(output, value.tree->childern);
         fprintf(output, ")");
         return;
-    } break;
+    }
     case water_sequence:  {
-        fprintf(output, "[");
         node_Print(output, value.branch->before);
         fprintf(output, " ");
         node_Print(output, value.branch->after);
-        fprintf(output, "];");
-    } break;
-    case water_void: break;
+    }
+    case water_void:
+        break;
     }
 
+    const char* name = type2name(type);
     fprintf(output, "%s(%x)", name, (unsigned) value.any);
 }
 
@@ -735,7 +735,7 @@ static bool tuple_event(PrsInput input, PrsCursor location) {
     Water water = (Water) input;
     print_State(water, true, "%s", event_name);
 
-    if (!make_Branch(water, water_select)) return false;
+    if (!make_Branch(water, water_tuple)) return false;
 
     print_State(water, false, "%s", event_name);
     return true;
