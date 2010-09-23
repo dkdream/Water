@@ -3,23 +3,23 @@
 
 file = ( rule )+ end-of-file
 
-rule = NAME @declare EQUAL ( tree | leaf ) @define
+rule = NAME @declare EQUAL choice @define
      | space
      | comment
      | end-of-line
 
-tree = LABEL ( assign )? OPEN regex CLOSE @tree
-leaf = LABEL ( assign )?                  @leaf
+##         call-on-desent                       call-on-assent
+tree = LABEL ( assign )? OPEN regex CLOSE @tree ( apply )?
+leaf = LABEL ( assign )?                  @leaf ( apply )?
 
 regex  = choice   ( COMMA regex  @tuple  )?
 choice = sequence ( BAR   choice @select )?
 
-sequence = prefix suffix @sequence ( THUNK @sequence )?
-         | suffix                  ( THUNK @sequence )?
+sequence = prefix suffix @sequence
+         | suffix
 
 prefix = AND condition @assert ( prefix @sequence )?
        | NOT condition @not    ( prefix @sequence )?
-       | THUNK
 
 condition = IDENTIFIER
           | tree
@@ -27,7 +27,7 @@ condition = IDENTIFIER
 
 suffix = primary    ( operator )?
        | IDENTIFIER assign
-       | IDENTIFIER
+       | IDENTIFIER ( operator )?
 
 primary = OPEN IDENTIFIER assign CLOSE
         | tree
@@ -39,15 +39,16 @@ operator = STAR     @zero_plus
          | OPTIONAL @maybe
          | SOPEN NUMBER DASH NUMBER SCLOSE @range
 
-assign = ASSIGN @assign
+assign = ASSIGN EVENT @assign
+apply  =        EVENT @sequence
 
 IDENTIFIER = NAME !EQUAL
-NAME       = < name-head  name-tail > !( ':' )           - @identifier
-LABEL      = < label-head name-tail >    ':'             - @label
-ASSIGN     = '->' blank? < variable-head variable-tail > - @variable
+NAME       =     < name-head name-tail > !( ':' ) - @identifier
+LABEL      =     < name-head name-tail >    ':'   - @label
+EVENT      = '@' < name-head name-tail >          - @event
 NUMBER     = < [0-9]+ > @number -
-THUNK      = '{' < braces* > '}' - @thunk
 
+ASSIGN   = '->' blank?
 EQUAL    = '=' -
 STAR     = '*' -
 PLUS     = '+' -
@@ -61,16 +62,8 @@ SCLOSE   = ']' -
 AND      = '&' -
 NOT      = '!' -
 
-
-
-
-name-head     = [A-Z]
-label-head    = [a-zA-Z]
-variable-head = [a-z]
-name-tail     = ( [-_]? ( [a-zA-Z0-9] )+ )*
-variable-tail = ( [-_]? ( [a-z0-9] )+ )*
-braces        = '{' braces* '}'
-              |  !'}' .
+name-head  = [a-zA-Z]
+name-tail  = ( [-_]? ( [a-zA-Z0-9] )+ )*
 
 -           = (space | comment)*
 blank       = ( ' ' | '\t' )+

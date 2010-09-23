@@ -63,8 +63,7 @@ static inline const char* type2name(H2oType type) {
     case water_define:    return "define";
     case water_identifer: return "identifer";
     case water_label:     return "label";
-    case water_variable:  return "variable";
-    case water_thunk:     return "thunk";
+    case water_event:     return "event";
     case water_not:       return "not";
     case water_assert:    return "assert";
     case water_zero_plus: return "zero_plus";
@@ -110,14 +109,12 @@ static inline void node_Print(FILE* output, H2oNode value) {
         fprintf(output, "%*.*s:", length, length, text);
         return;
     }
-    case water_variable:  {
-        const char* text = value.variable->value.start;
-        unsigned  length = value.variable->value.length;
-        fprintf(output, "->%*.*s", length, length, text);
+    case water_event:  {
+        const char* text = value.text->value.start;
+        unsigned  length = value.text->value.length;
+        fprintf(output, "@%*.*s", length, length, text);
         return;
     }
-    case water_thunk:
-        break;
     case water_not:       {
         fprintf(output, "[");
         node_Print(output, value.operator->value);
@@ -179,9 +176,10 @@ static inline void node_Print(FILE* output, H2oNode value) {
         return;
     }
     case water_assign:    {
-       fprintf(output, "assign[");
+       fprintf(output, "[");
        node_Print(output, value.assign->label);
-       node_Print(output, value.assign->variable);
+       fprintf(output, "->");
+       node_Print(output, value.assign->event);
        fprintf(output, "]");
        return;
     }
@@ -198,9 +196,12 @@ static inline void node_Print(FILE* output, H2oNode value) {
         return;
     }
     case water_sequence:  {
+        fprintf(output, "[");
         node_Print(output, value.branch->before);
         fprintf(output, " ");
         node_Print(output, value.branch->after);
+        fprintf(output, "]");
+        return;
     }
     case water_void:
         break;
@@ -245,12 +246,8 @@ static inline bool node_Create(enum water_type type, H2oTarget target) {
         size = sizeof(struct water_text);
         break;
 
-    case water_variable:
-        size = sizeof(struct water_variable);
-        break;
-
-    case water_thunk:
-        size = sizeof(struct water_chunk);
+    case water_event:
+        size = sizeof(struct water_text);
         break;
 
     case water_not:
@@ -566,48 +563,12 @@ static bool label_event(PrsInput input, PrsCursor location) {
     (void) event_name;
 }
 
-static bool variable_event(PrsInput input, PrsCursor location) {
-    const char *event_name = "variable";
+static bool event_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "event";
     Water water = (Water) input;
     print_State(water, true, "%s", event_name);
 
-    H2oVariable result = 0;
-
-    if (!node_Create(water_variable, &result)) return false;
-
-    if (!cu_MarkedText((PrsInput) water, &result->value)) return false;
-
-    H2oDefine define = water->rule;
-
-    result->next = define->variable;
-
-    define->variable = result;
-
-    if (!stack_Push(&water->stack, result)) return false;
-
-    print_State(water, false, "%s", event_name);
-    return true;
-    (void) event_name;
-}
-
-static bool thunk_event(PrsInput input, PrsCursor location) {
-    const char *event_name = "thunk";
-    Water water = (Water) input;
-    print_State(water, true, "%s", event_name);
-
-    H2oChunk result = 0;
-
-    if (!node_Create(water_thunk, &result)) return false;
-
-    if (!cu_MarkedText(input, &result->value)) return false;
-
-    H2oDefine define = water->rule;
-
-    result->next = define->body;
-
-    define->body = result;
-
-    if (!stack_Push(&water->stack, result)) return false;
+    if (!make_Text(water, water_event)) return false;
 
     print_State(water, false, "%s", event_name);
     return true;
@@ -751,7 +712,7 @@ static bool assign_event(PrsInput input, PrsCursor location) {
 
     if (!node_Create(water_assign, &result)) return false;
 
-    if (!stack_Pop(&water->stack, &result->variable)) return false;
+    if (!stack_Pop(&water->stack, &result->event)) return false;
     if (!stack_Pop(&water->stack, &result->label)) return false;
 
     if (!stack_Push(&water->stack, result)) return false;
@@ -839,9 +800,8 @@ static bool water_Init(Water water) {
     water_SetEvent(water, "range",      range_event);
     water_SetEvent(water, "identifier", identifier_event);
     water_SetEvent(water, "label",      label_event);
-    water_SetEvent(water, "variable",   variable_event);
+    water_SetEvent(water, "event",      event_event);
     water_SetEvent(water, "number",     number_event);
-    water_SetEvent(water, "thunk",      thunk_event);
     water_SetEvent(water, "sequence",   sequence_event);
 
     water_graph((PrsInput) water);

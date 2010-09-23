@@ -22,8 +22,6 @@
 typedef struct water_any      *H2oAny;
 typedef struct water_define   *H2oDefine;
 typedef struct water_text     *H2oText;
-typedef struct water_variable *H2oVariable;
-typedef struct water_chunk    *H2oChunk;
 typedef struct water_operator *H2oOperator;
 typedef struct water_count    *H2oCount;
 typedef struct water_range    *H2oRange;
@@ -40,8 +38,6 @@ union water_node {
     H2oAny      any;
     H2oDefine   define;
     H2oText     text;
-    H2oVariable variable;
-    H2oChunk    chunk;
     H2oOperator operator;
     H2oCount    count;
     H2oRange    range;
@@ -56,8 +52,6 @@ union water_target {
     H2oAny      *any;
     H2oDefine   *define;
     H2oText     *text;
-    H2oVariable *variable;
-    H2oChunk    *chunk;
     H2oOperator *operator;
     H2oCount    *count;
     H2oRange    *range;
@@ -73,8 +67,7 @@ typedef enum water_type {
     water_define,
     water_identifer,
     water_label,
-    water_variable,
-    water_thunk,
+    water_event,
     water_not,
     water_assert,
     water_zero_plus,
@@ -101,35 +94,18 @@ struct water_any {
 // use for
 // - identifier = ....
 struct water_define {
-    H2oType     type;
-    H2oDefine   next;
-    H2oText     name;
-    H2oNode     match;
-    H2oVariable variable;
-    H2oChunk    body;
+    H2oType   type;
+    H2oDefine next;
+    H2oText   name;
+    H2oNode   match;
 };
 
 // use for
 // - identifer
 // - label
+// - event
 struct water_text {
     H2oType  type;
-    PrsData  value;
-};
-
-// use for
-// - variable
-struct water_variable {
-    H2oType     type;
-    H2oVariable next;
-    PrsData     value;
-};
-
-// use for
-// - {...}
-struct water_chunk {
-    H2oType  type;
-    H2oChunk next;
     PrsData  value;
 };
 
@@ -141,8 +117,8 @@ struct water_chunk {
 // - e ?
 // - leaf
 struct water_operator {
-    H2oType  type;
-    H2oNode  value;
+    H2oType type;
+    H2oNode value;
 };
 
 // use for
@@ -166,17 +142,17 @@ struct water_range {
 // - e1 e2 ; (tuple)
 // - sequence
 struct water_branch {
-    H2oType  type;
-    H2oNode  before;
-    H2oNode  after;
+    H2oType type;
+    H2oNode before;
+    H2oNode after;
 };
 
 // use for
-// - LABEL -> VARIABLE
+// - LABEL -> EVENT
 struct water_assign {
-    H2oType  type;
-    H2oText  label;
-    H2oText  variable;
+    H2oType type;
+    H2oText label;
+    H2oText event;
 };
 
 // use for
