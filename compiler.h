@@ -16,9 +16,6 @@
 #include <static_table.h>
 
 /* */
-//#include <stdio.h>
-
-/* */
 typedef struct water_any      *H2oAny;
 typedef struct water_define   *H2oDefine;
 typedef struct water_text     *H2oText;
@@ -68,8 +65,11 @@ typedef enum water_type {
     water_identifer,
     water_label,
     water_event,
+    water_predicate,
     water_not,
     water_assert,
+    water_and,
+    water_or,
     water_zero_plus,
     water_one_plus,
     water_maybe,
@@ -104,6 +104,7 @@ struct water_define {
 // - identifer
 // - label
 // - event
+// - predicate
 struct water_text {
     H2oType  type;
     PrsData  value;

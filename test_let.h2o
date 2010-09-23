@@ -1,5 +1,6 @@
 
-Let           = Let: ->@begin ( ( LetAssign ->@lets )+ ) @end
-LetAssign     = LetAssign:( Value ->@value, ParameterName:(Symbol ->@assign) )
-Value         = Value:(Name ->@recall)
+Let           = Let: ->@begin [ ( LetAssign ->@lets )+,  ( %any )* ] @end
+LetAssign     = LetAssign:[ Value ->@value, ParameterName:[Symbol ->@assign] ]
+Value         = Value:[Name ->@recall]
 Symbol        = Symbol:
+

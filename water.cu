@@ -3,49 +3,55 @@
 
 file = ( rule )+ end-of-file
 
-rule = NAME @declare EQUAL choice @define
+rule = NAME @declare EQUAL node_choice @define
      | space
      | comment
      | end-of-line
 
-##         call-on-desent                       call-on-assent
-tree = LABEL ( assign )? OPEN regex CLOSE @tree ( apply )?
-leaf = LABEL ( assign )?                  @leaf ( apply )?
+node_choice = node ( BAR node_choice @or )?
 
-regex  = choice   ( COMMA regex  @tuple  )?
-choice = sequence ( BAR   choice @select )?
+node = node_prefix node_suffix @and
+     | node_suffix
 
-sequence = prefix suffix @sequence
-         | suffix
+node_prefix = AND test_node @assert ( node_prefix @and )?
+            | NOT test_node @not    ( node_prefix @and )?
+            | PREDICATE             ( node_prefix @and )?
 
-prefix = AND condition @assert ( prefix @sequence )?
-       | NOT condition @not    ( prefix @sequence )?
+node_suffix = IDENTIFIER assign
+            | tree
+            | leaf
+            | PREDICATE
 
-condition = IDENTIFIER
+test_node = IDENTIFIER
           | tree
           | leaf
+          | PREDICATE
 
-suffix = primary    ( operator )?
-       | IDENTIFIER assign
-       | IDENTIFIER ( operator )?
+##         call-on-desent                       call-on-assent
+tree = LABEL ( assign )? SOPEN regex SCLOSE @tree ( apply )?
+leaf = LABEL ( assign )?                    @leaf
 
-primary = OPEN IDENTIFIER assign CLOSE
-        | tree
-        | leaf
-        | OPEN regex CLOSE
+assign = ASSIGN EVENT @assign
+apply  =        EVENT @sequence
+
+regex    = choice   ( COMMA regex  @tuple  )?
+choice   = sequence ( BAR   choice @select )?
+sequence = OPEN node_choice CLOSE operator
+         | OPEN regex       CLOSE ( operator )?
+         | node_prefix OPEN node_choice CLOSE @sequence operator
+         | node_prefix OPEN regex       CLOSE @sequence ( operator )?
+         | node_choice
 
 operator = STAR     @zero_plus
          | PLUS     @one_plus
          | OPTIONAL @maybe
-         | SOPEN NUMBER DASH NUMBER SCLOSE @range
-
-assign = ASSIGN EVENT @assign
-apply  =        EVENT @sequence
+         | COPEN NUMBER DASH NUMBER CCLOSE @range
 
 IDENTIFIER = NAME !EQUAL
 NAME       =     < name-head name-tail > !( ':' ) - @identifier
 LABEL      =     < name-head name-tail >    ':'   - @label
 EVENT      = '@' < name-head name-tail >          - @event
+PREDICATE  = '%' < name-head name-tail >          - @predicate
 NUMBER     = < [0-9]+ > @number -
 
 ASSIGN   = '->' blank?
@@ -59,6 +65,8 @@ OPEN     = '(' -
 CLOSE    = ')' -
 SOPEN    = '[' -
 SCLOSE   = ']' -
+COPEN    = '{' -
+CCLOSE   = '}' -
 AND      = '&' -
 NOT      = '!' -
 

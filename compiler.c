@@ -64,6 +64,7 @@ static inline const char* type2name(H2oType type) {
     case water_identifer: return "identifer";
     case water_label:     return "label";
     case water_event:     return "event";
+    case water_predicate: return "predicate";
     case water_not:       return "not";
     case water_assert:    return "assert";
     case water_zero_plus: return "zero_plus";
@@ -76,6 +77,8 @@ static inline const char* type2name(H2oType type) {
     case water_assign:    return "assign";
     case water_leaf:      return "leaf";
     case water_tree:      return "tree";
+    case water_and:       return "and";
+    case water_or:        return "or";
     case water_sequence:  return "sequence";
     case water_void: break;
     }
@@ -115,34 +118,40 @@ static inline void node_Print(FILE* output, H2oNode value) {
         fprintf(output, "@%*.*s", length, length, text);
         return;
     }
+    case water_predicate:  {
+        const char* text = value.text->value.start;
+        unsigned  length = value.text->value.length;
+        fprintf(output, "%%%*.*s", length, length, text);
+        return;
+    }
     case water_not:       {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.operator->value);
-        fprintf(output, "]!");
+        fprintf(output, ")!");
         return;
     }
     case water_assert:    {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.operator->value);
-        fprintf(output, "]&");
+        fprintf(output, ")&");
         return;
     }
     case water_zero_plus: {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.operator->value);
-        fprintf(output, "]*");
+        fprintf(output, ")*");
         return;
     }
     case water_one_plus:  {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.operator->value);
-        fprintf(output, "]+");
+        fprintf(output, ")+");
         return;
     }
     case water_maybe:     {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.operator->value);
-        fprintf(output, "]?");
+        fprintf(output, ")?");
         return;
     }
     case water_count:     {
@@ -150,9 +159,9 @@ static inline void node_Print(FILE* output, H2oNode value) {
         return;
     }
     case water_range:     {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.range->value);
-        fprintf(output, "]{");
+        fprintf(output, "){");
         node_Print(output, value.range->min);
         fprintf(output, ",");
         node_Print(output, value.range->max);
@@ -160,47 +169,61 @@ static inline void node_Print(FILE* output, H2oNode value) {
         return;
     }
     case water_select:    {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.branch->before);
         fprintf(output, "/");
         node_Print(output, value.branch->after);
-        fprintf(output, "]");
+        fprintf(output, ")");
         return;
     }
     case water_tuple:     {
-        fprintf(output, "[");
+        fprintf(output, "(");
         node_Print(output, value.branch->before);
         fprintf(output, ",");
         node_Print(output, value.branch->after);
-        fprintf(output, "]");
+        fprintf(output, ")");
         return;
     }
     case water_assign:    {
-       fprintf(output, "[");
        node_Print(output, value.assign->label);
        fprintf(output, "->");
        node_Print(output, value.assign->event);
-       fprintf(output, "]");
        return;
     }
     case water_leaf:      {
         node_Print(output, value.operator->value);
-        fprintf(output, "()");
+        fprintf(output, "[]");
         return;
     }
     case water_tree:      {
         node_Print(output, value.tree->reference);
-        fprintf(output, "(");
+        fprintf(output, "[");
         node_Print(output, value.tree->childern);
-        fprintf(output, ")");
+        fprintf(output, "]");
         return;
     }
-    case water_sequence:  {
-        fprintf(output, "[");
+    case water_and:  {
+        fprintf(output, "(");
         node_Print(output, value.branch->before);
         fprintf(output, " ");
         node_Print(output, value.branch->after);
-        fprintf(output, "]");
+        fprintf(output, ")and");
+        return;
+    }
+    case water_or:  {
+        fprintf(output, "(");
+        node_Print(output, value.branch->before);
+        fprintf(output, " ");
+        node_Print(output, value.branch->after);
+        fprintf(output, ")or");
+        return;
+    }
+    case water_sequence:  {
+        fprintf(output, "(");
+        node_Print(output, value.branch->before);
+        fprintf(output, " ");
+        node_Print(output, value.branch->after);
+        fprintf(output, ")");
         return;
     }
     case water_void:
@@ -250,6 +273,10 @@ static inline bool node_Create(enum water_type type, H2oTarget target) {
         size = sizeof(struct water_text);
         break;
 
+    case water_predicate:
+        size = sizeof(struct water_text);
+        break;
+
     case water_not:
         size = sizeof(struct water_operator);
         break;
@@ -296,6 +323,14 @@ static inline bool node_Create(enum water_type type, H2oTarget target) {
 
     case water_tree:
         size = sizeof(struct water_tree);
+        break;
+
+    case water_and:
+        size = sizeof(struct water_branch);
+        break;
+
+    case water_or:
+        size = sizeof(struct water_branch);
         break;
 
     case water_sequence:
@@ -575,6 +610,18 @@ static bool event_event(PrsInput input, PrsCursor location) {
     (void) event_name;
 }
 
+static bool predicate_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "predicate";
+    Water water = (Water) input;
+    print_State(water, true, "%s", event_name);
+
+    if (!make_Text(water, water_predicate)) return false;
+
+    print_State(water, false, "%s", event_name);
+    return true;
+    (void) event_name;
+}
+
 static bool not_event(PrsInput input, PrsCursor location) {
     const char *event_name = "not";
     Water water = (Water) input;
@@ -753,6 +800,30 @@ static bool tree_event(PrsInput input, PrsCursor location) {
     (void) event_name;
 }
 
+static bool and_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "and";
+    Water water = (Water) input;
+    print_State(water, true, "%s", event_name);
+
+    if (!make_Branch(water, water_and)) return false;
+
+    print_State(water, false, "%s", event_name);
+    return true;
+    (void) event_name;
+}
+
+static bool or_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "or";
+    Water water = (Water) input;
+    print_State(water, true, "%s", event_name);
+
+    if (!make_Branch(water, water_or)) return false;
+
+    print_State(water, false, "%s", event_name);
+    return true;
+    (void) event_name;
+}
+
 static bool sequence_event(PrsInput input, PrsCursor location) {
     const char *event_name = "sequence";
     Water water = (Water) input;
@@ -801,7 +872,10 @@ static bool water_Init(Water water) {
     water_SetEvent(water, "identifier", identifier_event);
     water_SetEvent(water, "label",      label_event);
     water_SetEvent(water, "event",      event_event);
+    water_SetEvent(water, "predicate",  predicate_event);
     water_SetEvent(water, "number",     number_event);
+    water_SetEvent(water, "and",        and_event);
+    water_SetEvent(water, "or",         or_event);
     water_SetEvent(water, "sequence",   sequence_event);
 
     water_graph((PrsInput) water);
