@@ -1,5 +1,4 @@
 
-#include "water.h"
 #include "compiler.h"
 #include <copper.h>
 
@@ -28,10 +27,6 @@ static void usage(char *name)
     fprintf(stderr, "if no <oufile> is given, output is written to stdou\n");
     exit(1);
 }
-
-extern bool water_Create(const char* name, Water *target);
-extern void water_Parse(Water water);
-extern bool water_Free(Water value);
 
 int main(int argc, char **argv)
 {
@@ -100,7 +95,7 @@ int main(int argc, char **argv)
     cu_global_debug  = do_trace;
     h2o_global_debug = do_debug;
 
-    Water water = 0;
+    H2oParser water = 0;
 
     if (!water_Create(infile, &water)) {
         printf("unable to create parser\n");

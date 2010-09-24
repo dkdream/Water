@@ -29,7 +29,7 @@ typedef struct water_tree     *H2oTree;
 typedef struct water_cell     *H2oCell;
 typedef struct water_stack    *H2oStack;
 typedef struct water_buffer   *H2oBuffer;
-typedef struct water          *Water;
+typedef struct water_parser   *H2oParser;
 
 union water_node {
     H2oAny      any;
@@ -186,7 +186,7 @@ struct water_stack {
     H2oCell free_list;
 };
 
-struct water {
+struct water_parser {
     struct prs_input base;
 
     struct static_table node;
@@ -200,5 +200,9 @@ struct water {
 };
 
 extern unsigned int h2o_global_debug;
+
+extern bool water_Create(const char* name, H2oParser *target);
+extern void water_Parse(H2oParser water);
+extern bool water_Free(H2oParser value);
 
 #endif

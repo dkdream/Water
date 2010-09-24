@@ -32,7 +32,7 @@ tree = LABEL ( assign )? SOPEN regex SCLOSE @tree ( apply )?
 leaf = LABEL ( assign )?                    @leaf
 
 assign = ASSIGN EVENT @assign
-apply  =        EVENT @sequence
+apply  =        EVENT @and
 
 regex    = choice   ( COMMA regex  @tuple  )?
 choice   = sequence ( BAR   choice @select )?
