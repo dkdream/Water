@@ -19,52 +19,52 @@
 //
 #include <stdbool.h>
 
-typedef void                  *UserNode;
-typedef void                  *UserMark;
-typedef void                  *UserType;
-typedef const char            *UserName;
+typedef void                  *H2oUserNode;
+typedef void                  *H2oUserMark;
+typedef void                  *H2oUserType;
+typedef const char            *H2oUserName;
 typedef struct water_location *H2oLocation;
 typedef struct water_code     *H2oCode;
 typedef struct water_thread   *H2oThread;
 typedef struct water          *Water;
 
 /* fetch the first child of this node (if any)*/
-typedef bool (*GetFirst)(Water, H2oLocation);
+typedef bool (*H2oGetFirst)(Water, H2oLocation);
 /* fetch the next child of this node (if any) */
-typedef bool (*GetNext)(Water, H2oLocation);
+typedef bool (*H2oGetNext)(Water, H2oLocation);
 /* fetch the match root type*/
-typedef bool (*MatchNode)(Water, UserType, UserNode);
+typedef bool (*H2oMatchNode)(Water, H2oUserType, H2oUserNode);
 
 /* user defined predicate */
 /* these are ONLY call while traversing the tree */
-typedef bool (*H2oPredicate)(Water, UserNode);
+typedef bool (*H2oPredicate)(Water, H2oUserNode);
 
 /* user defined event actions */
 /* these are ONLY call after a sucessful traversal */
-typedef bool (*H2oEvent)(Water, UserNode);
+typedef bool (*H2oEvent)(Water, H2oUserNode);
 
-typedef bool (*FindType) (Water, UserName, UserType*);
-typedef bool (*FindCode) (Water, UserName, H2oCode*);          // find the H2oCode by name
-typedef bool (*AddCode)  (Water, UserName, H2oCode);           // add the  H2oCode to name
-typedef bool (*FindEvent)(Water, UserName, H2oEvent*);         // find the H2oEvent by name
-typedef bool (*FindPredicate)(Water, UserName, H2oPredicate*); // find the H2oPredicate by name
+typedef bool (*H2oFindType) (Water, H2oUserName, H2oUserType*);      // find the H2oUserType by name
+typedef bool (*H2oFindCode) (Water, H2oUserName, H2oCode*);          // find the H2oCode by name
+typedef bool (*H2oAddCode)  (Water, H2oUserName, H2oCode);           // add the  H2oCode to name
+typedef bool (*H2oFindEvent)(Water, H2oUserName, H2oEvent*);         // find the H2oEvent by name
+typedef bool (*H2oFindPredicate)(Water, H2oUserName, H2oPredicate*); // find the H2oPredicate by name
 
 struct water_location {
-    UserNode    root;    // the current root           (if any)
-    UserMark    offset;  // the mark for this location (if any)
-    UserNode    current; // the current node
+    H2oUserNode    root;    // the current root           (if any)
+    H2oUserMark    offset;  // the mark for this location (if any)
+    H2oUserNode    current; // the current node
 };
 
 struct water {
     /* call-backs */
-    GetFirst      first;
-    GetNext       next;
-    MatchNode     match;
-    FindType      type;
-    FindCode      code;
-    AddCode       attach;
-    FindPredicate predicate;
-    FindEvent     event;
+    H2oGetFirst      first;
+    H2oGetNext       next;
+    H2oMatchNode     match;
+    H2oFindType      type;
+    H2oFindCode      code;
+    H2oAddCode       attach;
+    H2oFindPredicate predicate;
+    H2oFindEvent     event;
 
     /* data */
     struct water_location cursor;
@@ -72,6 +72,68 @@ struct water {
     H2oThread end;
     H2oThread free_list;
 };
+
+/*-------------------------------------------------------------------*/
+#ifdef H2o_ARRAY_NODE_EXAMPLE
+
+struct example_node {
+    unsigned type;
+    unsigned size;
+    struct example_node* childern[];
+};
+
+static bool example_GetFirst(Water water, H2oLocation location) {
+    if (!water)    return false;
+    if (!location) return false;
+
+    struct example_node *node = location->root;
+
+    if (!node) return false;
+
+    // if (!hasChildern(node->type)) return false;
+
+    if (0 >= node->size) return false;
+
+    location->offset  = (H2oUserMark) 0;
+    location->current = (H2oUserNode) node->childern[0];
+
+    return true;
+}
+
+static bool example_GetNextt(Water water, H2oLocation location) {
+    if (!water)    return false;
+    if (!location) return false;
+
+    struct example_node *node = location->root;
+
+    if (!node) return false;
+
+    // if (!hasChildern(node->type)) return false;
+
+    unsigned index = (unsigned) location->offset;
+
+    index += 1;
+
+    if (index >= node->size) return false;
+
+    location->offset  = (H2oUserMark) index;
+    location->current = (H2oUserNode) node->childern[index];
+
+    return true;
+}
+
+static bool example_MatchNode(Water water,  H2oUserType utype, H2oUserNode unode) {
+    if (!water) return false;
+    if (!unode)  return false;
+
+    unsigned             type = (unsigned) utype;
+    struct example_node *node = unode;
+
+    return type == node->type;
+}
+
+#endif
+/*-------------------------------------------------------------------*/
 
 typedef enum water_operation {
     // node operations
@@ -83,6 +145,7 @@ typedef enum water_operation {
     water_Apply,
     water_Root,
     water_Childern,
+    water_Leaf,
 
     water_Predicate,
     water_Event,
@@ -111,6 +174,7 @@ typedef struct water_group    *H2oGroup;
 // - water_Any
 // - water_Begin
 // - water_End
+// - water_Leaf
 struct water_code {
     H2oOperation oper;
 };
@@ -141,12 +205,13 @@ struct water_function {
 
 // used by
 // - water_Apply
-// - water_Root
 // - water_Predicate
 // - water_Event
+// - water_Root
 struct water_action {
     H2oOperation oper;
     H2oIndex     index;
+    H2oUserName  name;
 };
 
 // used by

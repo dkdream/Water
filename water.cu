@@ -18,18 +18,19 @@ node_prefix = AND test_node @assert ( node_prefix @and )?
             | PREDICATE             ( node_prefix @and )?
 
 node_suffix = IDENTIFIER assign
-            | tree
-            | leaf
+            | node_value
             | PREDICATE
 
 test_node = IDENTIFIER
-          | tree
-          | leaf
+          | node_value
           | PREDICATE
 
+node_value = leaf | tree | root
+
 ##         call-on-desent                       call-on-assent
+leaf = LABEL ( assign )? SOPEN SCLOSE       @leaf
 tree = LABEL ( assign )? SOPEN regex SCLOSE @tree ( apply )?
-leaf = LABEL ( assign )?                    @leaf
+root = LABEL ( assign )?
 
 assign = ASSIGN EVENT @assign
 apply  =        EVENT @and
@@ -47,8 +48,8 @@ operator = STAR     @zero_plus
          | OPTIONAL @maybe
          | COPEN NUMBER DASH NUMBER CCLOSE @range
 
-IDENTIFIER = NAME !EQUAL
-NAME       =     < name-head name-tail > !( ':' ) - @identifier
+IDENTIFIER = NAME !EQUAL @identifier
+NAME       =     < name-head name-tail > !( ':' ) -
 LABEL      =     < name-head name-tail >    ':'   - @label
 EVENT      = '@' < name-head name-tail >          - @event
 PREDICATE  = '%' < name-head name-tail >          - @predicate

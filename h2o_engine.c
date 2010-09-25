@@ -22,11 +22,11 @@
 struct water_thread {
     H2oThread next;
     H2oEvent  event;
-    UserNode  node;
+    H2oUserNode  node;
 };
 
 static bool make_Thread(H2oEvent event,
-                        UserNode node,
+                        H2oUserNode node,
                         H2oThread *target)
 {
     struct water_thread *result = malloc(sizeof(struct water_thread));
@@ -86,13 +86,13 @@ static bool water_vm(Water water, H2oCode start)
 
     inline bool apply_code(H2oIndex index) {
         H2oCode code;
-        if (!(water->code)(water, (UserName) index, &code)) return false;
+        if (!(water->code)(water, (H2oUserName) index, &code)) return false;
         return call_with(code);
     }
 
     inline bool add_event(H2oIndex index) {
         H2oEvent event;
-        if (!(water->event)(water, (UserName) index, &event)) return false;
+        if (!(water->event)(water, (H2oUserName) index, &event)) return false;
         H2oThread value = water->free_list;
         if (!value) {
             if (!make_Thread(event, water->cursor.current, &value)) return false;
@@ -114,12 +114,12 @@ static bool water_vm(Water water, H2oCode start)
     }
     inline bool apply_predicate(H2oIndex index) {
         H2oPredicate predicate;
-        if (!(water->predicate)(water, (UserName) index, &predicate)) return false;
+        if (!(water->predicate)(water, (H2oUserName) index, &predicate)) return false;
         return predicate(water, water->cursor.current);
     }
     inline bool match_root(H2oIndex index) {
-        UserType type;
-        if (!(water->type)(water, (UserName) index, &type))      return false;
+        H2oUserType type;
+        if (!(water->type)(water, (H2oUserName) index, &type))      return false;
         if (!(water->match)(water, type, water->cursor.current)) return false;
         return true;
     }

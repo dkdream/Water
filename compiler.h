@@ -78,8 +78,8 @@ typedef enum water_type {
     water_select,
     water_tuple,
     water_assign,
+    water_childern,
     water_leaf,
-    water_tree,
     water_sequence,
     //-------
     water_void
@@ -87,16 +87,19 @@ typedef enum water_type {
 
 // use for
 // and as a generic node
+// - leaf
 struct water_any {
-    H2oType type;
+    H2oType  type;
+    unsigned id;
 };
 
 // use for
 // - identifier = ....
 struct water_define {
     H2oType   type;
+    unsigned  id;
     H2oDefine next;
-    H2oText   name;
+    PrsData   name;
     H2oNode   match;
 };
 
@@ -107,6 +110,7 @@ struct water_define {
 // - predicate
 struct water_text {
     H2oType  type;
+    unsigned id;
     PrsData  value;
 };
 
@@ -116,9 +120,10 @@ struct water_text {
 // - e +
 // - e *
 // - e ?
-// - leaf
+// - childern
 struct water_operator {
     H2oType type;
+    unsigned id;
     H2oNode value;
 };
 
@@ -126,6 +131,7 @@ struct water_operator {
 // - number
 struct water_count {
     H2oType  type;
+    unsigned id;
     unsigned count;
 };
 
@@ -133,17 +139,21 @@ struct water_count {
 // - e [min,max]
 struct water_range {
     H2oType  type;
+    unsigned id;
     H2oNode  value;
     H2oCount min; // assert(min < max) where max != 0
     H2oCount max; // zero = infinity
 };
 
 // use for
-// - e1 e2 / (select)
-// - e1 e2 ; (tuple)
-// - sequence
+// - e1 e2 select
+// - e1 e2 tuple
+// - e1 e2 sequence
+// - e1 e2 and
+// - e1 e2 or
 struct water_branch {
     H2oType type;
+    unsigned id;
     H2oNode before;
     H2oNode after;
 };
@@ -152,16 +162,9 @@ struct water_branch {
 // - LABEL -> EVENT
 struct water_assign {
     H2oType type;
+    unsigned id;
     H2oText label;
     H2oText event;
-};
-
-// use for
-// - tree
-struct water_tree {
-    H2oType  type;
-    H2oNode  reference;
-    H2oNode  childern;
 };
 
 /*------------------------------------------------------------*/
@@ -195,6 +198,8 @@ struct water_parser {
     // parsing context
     struct water_stack  stack;
     struct water_buffer buffer;
+
+    FILE* output;
 
     H2oDefine rule;
 };
