@@ -60,26 +60,25 @@ static bool stack_Init(unsigned count, H2oStack target) {
 
 static inline const char* type2name(H2oType type) {
     switch (type) {
+    case water_and:       return "and";
+    case water_assert:    return "assert";
+    case water_childern:  return "childern";
+    case water_count:     return "count";
     case water_define:    return "define";
+    case water_event:     return "event";
     case water_identifer: return "identifer";
     case water_label:     return "label";
-    case water_event:     return "event";
-    case water_predicate: return "predicate";
-    case water_not:       return "not";
-    case water_assert:    return "assert";
-    case water_zero_plus: return "zero_plus";
-    case water_one_plus:  return "one_plus";
+    case water_leaf:      return "leaf";
     case water_maybe:     return "maybe";
-    case water_count:     return "count";
+    case water_not:       return "not";
+    case water_one_plus:  return "one_plus";
+    case water_or:        return "or";
+    case water_predicate: return "predicate";
     case water_range:     return "range";
     case water_select:    return "select";
-    case water_tuple:     return "tuple";
-    case water_assign:    return "assign";
-    case water_leaf:      return "leaf";
-    case water_childern:  return "childern";
-    case water_and:       return "and";
-    case water_or:        return "or";
     case water_sequence:  return "sequence";
+    case water_tuple:     return "tuple";
+    case water_zero_plus: return "zero_plus";
     case water_void: break;
     }
     return "unknown";
@@ -163,11 +162,9 @@ static inline void node_Print(FILE* output, H2oNode value) {
     case water_range:     {
         fprintf(output, "(");
         node_Print(output, value.range->value);
-        fprintf(output, "){");
-        node_Print(output, value.range->min);
-        fprintf(output, ",");
-        node_Print(output, value.range->max);
-        fprintf(output, "}");
+        fprintf(output, "){ %u, %u }",
+                value.range->min,
+                value.range->max);
         return;
     }
     case water_select:    {
@@ -185,12 +182,6 @@ static inline void node_Print(FILE* output, H2oNode value) {
         node_Print(output, value.branch->after);
         fprintf(output, ")");
         return;
-    }
-    case water_assign:    {
-       node_Print(output, value.assign->label);
-       fprintf(output, "->");
-       node_Print(output, value.assign->event);
-       return;
     }
 
     case water_childern:      {
@@ -251,6 +242,87 @@ static void stack_Print(FILE* output, H2oStack stack) {
     print_list(stack->top);
 
     return;
+}
+
+static inline bool table_Init(H2oTable table) {
+    if (!table) return false;
+    if (!stable_Init(1024, &table->map))  return false;
+
+    table->count = 0;
+    table->last  = 0;
+    return true;
+}
+
+static inline bool symbol_Add(H2oTable table, PrsData text, unsigned *index) {
+    if (!table)       return false;
+    if (!index)       return false;
+    if (!text.start)  return false;
+    if (!text.length) return false;
+
+    StaticValue result;
+    H2oSymbol   symbol;
+
+    if (stable_NFind(&table->map, text.start, text.length, &result)) {
+        symbol = (H2oSymbol) result;
+        *index = symbol->index;
+        return true;
+    }
+
+    symbol = malloc(sizeof(struct water_symbol));
+
+    if (!symbol) return false;
+
+    memset(symbol, 0, sizeof(struct water_symbol));
+
+    if (!stable_NReplace(&table->map, text.start, text.length, symbol)) {
+        free(symbol);
+        return false;
+    }
+
+    symbol->name  = text;
+    symbol->index = table->count++;
+    symbol->next  = table->last;
+
+    table->last = symbol;
+    *index      = symbol->index;
+
+    return true;
+}
+
+static inline bool write_Table(H2oParser water, H2oTable table) {
+    if (!table) return false;
+
+    inline bool write_Symbol(H2oSymbol symbol) {
+        if (!symbol) return false;
+
+        const char* text = symbol->name.start;
+        unsigned  length = symbol->name.length;
+        unsigned   index = symbol->index;
+
+        fprintf(water->output, "\"%*.*s\"",
+                length, length, text,
+                index);
+
+        return true;
+    }
+
+    inline bool write_List(H2oSymbol symbol) {
+        if (!symbol) return true;
+        if (!symbol->next) {
+            if (!write_Symbol(symbol)) return false;
+        } else {
+            if (!write_List(symbol->next)) return false;
+            fprintf(water->output, ", ");
+            if (!write_Symbol(symbol)) return false;
+        }
+        return true;
+    }
+
+    fprintf(water->output, "{ ");
+    if (!write_List(table->last)) return false;
+    fprintf(water->output, " };\n");
+
+    return true;
 }
 
 static inline bool node_Create(enum water_type type, H2oTarget target) {
@@ -314,10 +386,6 @@ static inline bool node_Create(enum water_type type, H2oTarget target) {
 
     case water_tuple:
         size = sizeof(struct water_branch);
-        break;
-
-    case water_assign:
-        size = sizeof(struct water_assign);
         break;
 
     case water_leaf:
@@ -408,7 +476,7 @@ static bool water_FindEvent(PrsInput parser, PrsName name, PrsEvent* target) {
 
     StaticValue result;
 
-    if (!stable_Find(&water->event, name, &result)) return false;
+    if (!stable_Find(&water->action, name, &result)) return false;
 
     *target = (PrsEvent) result;
 
@@ -422,7 +490,7 @@ static bool water_AddName(PrsInput parser, PrsName name, PrsNode value) {
 }
 
 static bool water_SetEvent(H2oParser water, PrsName name, PrsEvent value) {
-    return stable_Replace(&water->event, name, (StaticValue) value);
+    return stable_Replace(&water->action, name, (StaticValue) value);
 }
 
 static void print_State(H2oParser water, bool start, const char* format, ...) {
@@ -529,6 +597,19 @@ static inline bool make_Text(H2oParser water, H2oType type) {
     if (!node_Create(type, &result)) return false;
 
     if (!cu_MarkedText((PrsInput) water, &result->value)) return false;
+
+    H2oTable table = &water->predicate;
+
+    switch (type) {
+    case water_identifer: table = &water->identifer; break;
+    case water_label:     table = &water->label; break;
+    case water_event:     table = &water->event; break;
+    case water_predicate:
+    default:
+        break;
+    }
+
+    if (!symbol_Add(table, result->value, &result->index)) return false;
 
     if (!stack_Push(&water->stack, result)) return false;
 
@@ -746,11 +827,22 @@ static bool range_event(PrsInput input, PrsCursor location) {
     print_State(water, true, "%s", event_name);
 
     H2oRange result;
+    H2oCount min;
+    H2oCount max;
+
+    if (!stack_Pop(&water->stack, &max)) return false;
+
+    if (water_count != max->type) return false;
+
+    if (!stack_Pop(&water->stack, &min)) return false;
+
+    if (water_count != min->type) return false;
 
     if (!node_Create(water_range, &result)) return false;
 
-    if (!stack_Pop(&water->stack, &result->max)) return false;
-    if (!stack_Pop(&water->stack, &result->min)) return false;
+    result->max = max->count;
+    result->min = min->count;
+
     if (!stack_Pop(&water->stack, &result->value)) return false;
 
     if (!stack_Push(&water->stack, result)) return false;
@@ -892,7 +984,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         H2oText text = match.text;
         fprintf(water->output, "static struct water_action ");
         lvalue(text);
-        fprintf(water->output, " = { water_Apply, 0, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Apply, %u, &rules, \"%*.*s\" };\n",
+                text->index,
                 text->value.length,
                 text->value.length,
                 text->value.start);
@@ -903,7 +996,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         H2oText text = match.text;
         fprintf(water->output, "static struct water_action ");
         lvalue(text);
-        fprintf(water->output, " = { water_Root, 0, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Root, %u, &roots, \"%*.*s\" };\n",
+                text->index,
                 text->value.length,
                 text->value.length,
                 text->value.start);
@@ -914,7 +1008,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         H2oText text = match.text;
         fprintf(water->output, "static struct water_action ");
         lvalue(text);
-        fprintf(water->output, " = { water_Event, 0, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Event, %u, &events, \"%*.*s\" };\n",
+                text->index,
                 text->value.length,
                 text->value.length,
                 text->value.start);
@@ -926,7 +1021,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         fprintf(water->output, "static struct water_action ");
 
         lvalue(text);
-        fprintf(water->output, " = { water_Predicate, 0, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Predicate, %u, &predicates, \"%*.*s\" };\n",
+                text->index,
                 text->value.length,
                 text->value.length,
                 text->value.start);
@@ -999,17 +1095,13 @@ static bool write_Tree(H2oParser water, H2oNode match) {
     inline bool write_range() {
         H2oRange range = match.range;
         write_node(range->value);
-        write_node(range->min);
-        write_node(range->max);
         fprintf(water->output, "static const struct water_group ");
         lvalue(match);
         fprintf(water->output, " = { water_Range, ");
         avalue(range->value);
-        fprintf(water->output, ", ");
-        lvalue(range->min);
-        fprintf(water->output, ", ");
-        lvalue(range->max);
-        fprintf(water->output, " };\n");
+        fprintf(water->output, ", %u, %u };\n",
+                range->min,
+                range->max);
         return true;
     }
 
@@ -1037,20 +1129,6 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         avalue(branch->before);
         fprintf(water->output, ", ");
         avalue(branch->after);
-        fprintf(water->output, " };\n");
-        return true;
-    }
-
-    inline bool write_assign() {
-        H2oAssign assign = match.assign;
-        write_node(assign->label);
-        write_node(assign->event);
-        fprintf(water->output, "static const struct water_chain ");
-        lvalue(match);
-        fprintf(water->output, " = { water_Event, ");
-        avalue(assign->label);
-        fprintf(water->output, ", ");
-        avalue(assign->event);
         fprintf(water->output, " };\n");
         return true;
     }
@@ -1138,7 +1216,6 @@ static bool write_Tree(H2oParser water, H2oNode match) {
     case water_range:     return write_range();
     case water_select:    return write_select();
     case water_tuple:     return write_tuple();
-    case water_assign:    return write_assign();
     case water_leaf:      return write_leaf();
     case water_childern:  return write_childern();
     case water_and:       return write_and();
@@ -1151,6 +1228,25 @@ static bool write_Tree(H2oParser water, H2oNode match) {
 }
 
 static bool write_Ccode(H2oParser water, H2oDefine rule) {
+    fprintf(water->output, "static const char *rule_list[]      = ");
+    write_Table(water, &water->identifer);
+
+    fprintf(water->output, "static const char *root_list[]      = ");
+    write_Table(water, &water->label);
+
+    fprintf(water->output, "static const char *event_list[]     = ");
+    write_Table(water, &water->event);
+
+    fprintf(water->output, "static const char *predicate_list[] = ");
+    write_Table(water, &water->predicate);
+
+    fprintf(water->output, "\n");
+    fprintf(water->output, "struct water_cache rules      = { 0, rule_list,      rule_cache,      0, };\n");
+    fprintf(water->output, "struct water_cache roots      = { 0, root_list,      root_cache,      0, }'\n");
+    fprintf(water->output, "struct water_cache events     = { 0, event_list,     event_cache,     0, };\n");
+    fprintf(water->output, "struct water_cache predicates = { 0, predicate_list, predicate_cache, 0, };\n");
+    fprintf(water->output, "\n");
+
     return write_Tree(water, rule);
 }
 
@@ -1171,7 +1267,7 @@ static bool water_Init(H2oParser water) {
     if (!cu_InputInit(&water->base, 1024)) return false;
 
     if (!stable_Init(1024, &water->node))      return false;
-    if (!stable_Init(1024, &water->event))     return false;
+    if (!stable_Init(1024, &water->action))   return false;
     if (!stack_Init(100,   &water->stack))     return false;
 
     water_SetEvent(water, "declare",    declare_event);
@@ -1195,6 +1291,11 @@ static bool water_Init(H2oParser water) {
     water_SetEvent(water, "and",        and_event);
     water_SetEvent(water, "or",         or_event);
     water_SetEvent(water, "sequence",   sequence_event);
+
+    if (!table_Init(&water->identifer))  return false;
+    if (!table_Init(&water->event))      return false;
+    if (!table_Init(&water->label))      return false;
+    if (!table_Init(&water->predicate))  return false;
 
     water_graph((PrsInput) water);
 

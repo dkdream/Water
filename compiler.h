@@ -28,6 +28,8 @@ typedef struct water_tree     *H2oTree;
 /* */
 typedef struct water_cell     *H2oCell;
 typedef struct water_stack    *H2oStack;
+typedef struct water_symbol   *H2oSymbol;
+typedef struct water_table    *H2oTable;
 typedef struct water_buffer   *H2oBuffer;
 typedef struct water_parser   *H2oParser;
 
@@ -61,26 +63,25 @@ union water_target {
 typedef union water_target H2oTarget;
 
 typedef enum water_type {
+    water_and,
+    water_assert,
+    water_childern,
+    water_count,
     water_define,
+    water_event,
     water_identifer,
     water_label,
-    water_event,
-    water_predicate,
-    water_not,
-    water_assert,
-    water_and,
-    water_or,
-    water_zero_plus,
-    water_one_plus,
+    water_leaf,
     water_maybe,
-    water_count,
+    water_not,
+    water_one_plus,
+    water_or,
+    water_predicate,
     water_range,
     water_select,
-    water_tuple,
-    water_assign,
-    water_childern,
-    water_leaf,
     water_sequence,
+    water_tuple,
+    water_zero_plus,
     //-------
     water_void
 } H2oType;
@@ -112,6 +113,7 @@ struct water_text {
     H2oType  type;
     unsigned id;
     PrsData  value;
+    unsigned index;
 };
 
 // use for
@@ -122,9 +124,9 @@ struct water_text {
 // - e ?
 // - childern
 struct water_operator {
-    H2oType type;
+    H2oType  type;
     unsigned id;
-    H2oNode value;
+    H2oNode  value;
 };
 
 // use for
@@ -141,8 +143,8 @@ struct water_range {
     H2oType  type;
     unsigned id;
     H2oNode  value;
-    H2oCount min; // assert(min < max) where max != 0
-    H2oCount max; // zero = infinity
+    unsigned min; // assert(min < max) where max != 0
+    unsigned max; // zero = infinity
 };
 
 // use for
@@ -152,19 +154,10 @@ struct water_range {
 // - e1 e2 and
 // - e1 e2 or
 struct water_branch {
-    H2oType type;
+    H2oType  type;
     unsigned id;
-    H2oNode before;
-    H2oNode after;
-};
-
-// use for
-// - LABEL -> EVENT
-struct water_assign {
-    H2oType type;
-    unsigned id;
-    H2oText label;
-    H2oText event;
+    H2oNode  before;
+    H2oNode  after;
 };
 
 /*------------------------------------------------------------*/
@@ -189,17 +182,34 @@ struct water_stack {
     H2oCell free_list;
 };
 
+struct water_symbol {
+    PrsData   name;
+    unsigned  index;
+    H2oSymbol next;
+};
+
+struct water_table {
+    struct static_table map;
+    unsigned            count;
+    H2oSymbol           last;
+};
+
 struct water_parser {
     struct prs_input base;
 
     struct static_table node;
-    struct static_table event;
+    struct static_table action;
 
     // parsing context
     struct water_stack  stack;
     struct water_buffer buffer;
 
     FILE* output;
+
+    struct water_table identifer; // water_Apply
+    struct water_table label;     // water_Root
+    struct water_table event;     // water_Event
+    struct water_table predicate; // water_Predicate
 
     H2oDefine rule;
 };

@@ -26,6 +26,7 @@ typedef const char            *H2oUserName;
 typedef struct water_location *H2oLocation;
 typedef struct water_code     *H2oCode;
 typedef struct water_thread   *H2oThread;
+typedef struct water_cache    *H2oCache;
 typedef struct water          *Water;
 
 /* fetch the first child of this node (if any)*/
@@ -71,6 +72,12 @@ struct water {
     H2oThread begin;
     H2oThread end;
     H2oThread free_list;
+
+    /* caches */
+    H2oCache rules;
+    H2oCache roots;
+    H2oCache events;
+    H2oCache predicates;
 };
 
 /*-------------------------------------------------------------------*/
@@ -164,6 +171,14 @@ typedef enum water_operation {
     water_Void
 } H2oOperation;
 
+typedef enum water_cache_type {
+    rule_cache,
+    root_cache,
+    event_cache,
+    predicate_cache,
+    cache_void,
+} H2oCacheType;
+
 typedef void                  *H2oIndex;
 typedef struct water_chain    *H2oChain;
 typedef struct water_function *H2oFunction;
@@ -211,6 +226,7 @@ struct water_function {
 struct water_action {
     H2oOperation oper;
     H2oIndex     index;
+    H2oCache     cache;
     H2oUserName  name;
 };
 
@@ -223,6 +239,12 @@ struct water_group {
     unsigned     maximum; // zero means until GetNext returns false
 };
 
+struct water_cache {
+    H2oCache      next;
+    H2oCacheType type;
+    const char **names;
+    void       **values;
+};
 
 /////////////////////
 // end of file
