@@ -60,6 +60,7 @@ static bool stack_Init(unsigned count, H2oStack target) {
 
 static inline const char* type2name(H2oType type) {
     switch (type) {
+    case water_any:       return "any";
     case water_and:       return "and";
     case water_assert:    return "assert";
     case water_childern:  return "childern";
@@ -183,14 +184,16 @@ static inline void node_Print(FILE* output, H2oNode value) {
         fprintf(output, ")");
         return;
     }
-
     case water_childern:      {
         fprintf(output, "(");
         node_Print(output, value.operator->value);
         fprintf(output, ")childern");
         return;
     }
-
+    case water_any:      {
+        fprintf(output, "%sany", "%");
+        return;
+    }
     case water_leaf:      {
         fprintf(output, "[]");
         return;
@@ -384,6 +387,10 @@ static inline bool node_Create(enum water_type type, H2oTarget target) {
 
     case water_tuple:
         size = sizeof(struct water_branch);
+        break;
+
+    case water_any:
+        size = sizeof(struct water_any);
         break;
 
     case water_leaf:
@@ -755,6 +762,16 @@ static bool assert_event(PrsInput input, PrsCursor location) {
     if (!make_Operator(water, water_assert)) return false;
 
     print_State(water, false, "%s", event_name);
+    return true;
+    (void) event_name;
+}
+
+static bool any_event(PrsInput input, PrsCursor location) {
+    const char *event_name = "any";
+    H2oParser water = (H2oParser) input;
+
+    if (!make_Action(water, water_any)) return false;
+
     return true;
     (void) event_name;
 }
@@ -1138,6 +1155,13 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         return true;
     }
 
+    inline bool write_any() {
+        fprintf(water->output, "static const struct water_code ");
+        lvalue(match);
+        fprintf(water->output, " = { water_Any };\n");
+        return true;
+    }
+
     inline bool write_childern() {
         H2oOperator operator = match.operator;
         write_node(operator->value);
@@ -1200,25 +1224,26 @@ static bool write_Tree(H2oParser water, H2oNode match) {
     H2oType type = match.any->type;
 
     switch (type) {
+    case water_and:       return write_and();
+    case water_any:    return write_any();
+    case water_assert:    return write_assert();
+    case water_childern:  return write_childern();
+    case water_count:     return write_count();
     case water_define:    return write_define();
+    case water_event:     return write_event();
     case water_identifer: return write_identifer();
     case water_label:     return write_label();
-    case water_event:     return write_event();
-    case water_predicate: return write_predicate();
-    case water_not:       return write_not();
-    case water_assert:    return write_assert();
-    case water_zero_plus: return write_zero_plus();
-    case water_one_plus:  return write_one_plus();
+    case water_leaf:      return write_leaf();
     case water_maybe:     return write_maybe();
-    case water_count:     return write_count();
+    case water_not:       return write_not();
+    case water_one_plus:  return write_one_plus();
+    case water_or:        return write_or();
+    case water_predicate: return write_predicate();
     case water_range:     return write_range();
     case water_select:    return write_select();
-    case water_tuple:     return write_tuple();
-    case water_leaf:      return write_leaf();
-    case water_childern:  return write_childern();
-    case water_and:       return write_and();
-    case water_or:        return write_or();
     case water_sequence:  return write_sequence();
+    case water_tuple:     return write_tuple();
+    case water_zero_plus: return write_zero_plus();
     case water_void:      return error();
     }
 
@@ -1313,27 +1338,28 @@ static bool water_Init(H2oParser water) {
     if (!stable_Init(1024, &water->action))   return false;
     if (!stack_Init(100,   &water->stack))     return false;
 
+    water_SetEvent(water, "and",        and_event);
+    water_SetEvent(water, "any",       any_event);
+    water_SetEvent(water, "assert",     assert_event);
+    water_SetEvent(water, "assign",     assign_event);
     water_SetEvent(water, "declare",    declare_event);
     water_SetEvent(water, "define",     define_event);
-    water_SetEvent(water, "tree",       tree_event);
-    water_SetEvent(water, "leaf",       leaf_event);
-    water_SetEvent(water, "tuple",      tuple_event);
-    water_SetEvent(water, "select",     select_event);
-    water_SetEvent(water, "assert",     assert_event);
-    water_SetEvent(water, "not",        not_event);
-    water_SetEvent(water, "assign",     assign_event);
-    water_SetEvent(water, "zero_plus",  zero_plus_event);
-    water_SetEvent(water, "one_plus",   one_plus_event);
-    water_SetEvent(water, "maybe",      maybe_event);
-    water_SetEvent(water, "range",      range_event);
+    water_SetEvent(water, "event",      event_event);
     water_SetEvent(water, "identifier", identifier_event);
     water_SetEvent(water, "label",      label_event);
-    water_SetEvent(water, "event",      event_event);
-    water_SetEvent(water, "predicate",  predicate_event);
+    water_SetEvent(water, "leaf",       leaf_event);
+    water_SetEvent(water, "maybe",      maybe_event);
+    water_SetEvent(water, "not",        not_event);
     water_SetEvent(water, "number",     number_event);
-    water_SetEvent(water, "and",        and_event);
+    water_SetEvent(water, "one_plus",   one_plus_event);
     water_SetEvent(water, "or",         or_event);
+    water_SetEvent(water, "predicate",  predicate_event);
+    water_SetEvent(water, "range",      range_event);
+    water_SetEvent(water, "select",     select_event);
     water_SetEvent(water, "sequence",   sequence_event);
+    water_SetEvent(water, "tree",       tree_event);
+    water_SetEvent(water, "tuple",      tuple_event);
+    water_SetEvent(water, "zero_plus",  zero_plus_event);
 
     if (!table_Init(&water->identifer))  return false;
     if (!table_Init(&water->event))      return false;

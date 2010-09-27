@@ -15,14 +15,17 @@ node = node_prefix node_suffix @and
 
 node_prefix = AND test_node @assert ( node_prefix @and )?
             | NOT test_node @not    ( node_prefix @and )?
+            | ANY                   ( node_prefix @and )?
             | PREDICATE             ( node_prefix @and )?
 
 node_suffix = IDENTIFIER assign
             | node_value
+            | ANY
             | PREDICATE
 
 test_node = IDENTIFIER
           | node_value
+          | ANY
           | PREDICATE
 
 node_value = leaf | tree | root
@@ -70,6 +73,8 @@ COPEN    = '{' -
 CCLOSE   = '}' -
 AND      = '&' -
 NOT      = '!' -
+ANY      = '%any' - @any
+
 
 name-head  = [a-zA-Z]
 name-tail  = ( [-_]? ( [a-zA-Z0-9] )+ )*

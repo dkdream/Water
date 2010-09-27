@@ -63,6 +63,7 @@ union water_target {
 typedef union water_target H2oTarget;
 
 typedef enum water_type {
+    water_any,
     water_and,
     water_assert,
     water_childern,
