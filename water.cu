@@ -74,7 +74,7 @@ NOT      = '!' -
 ANY      = '%any' - @any
 
 
-name-head  = [a-zA-Z]
+name-head  = ( [a-zA-Z] )+
 name-tail  = ( [-_]? ( [a-zA-Z0-9] )+ )*
 
 -           = (space | comment)*
