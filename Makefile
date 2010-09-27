@@ -83,8 +83,7 @@ $(RUNS) : water.vm
 clean ::
 	@rm -rf .depends
 	@rm -f .*~ *~
-	@rm -f $(TSTS:test_%.h2o=test_%.cc)
-	@rm -f $(TSTS:test_%.h2o=test_%.o)
+	@rm -f $(TSTS:test_%.h2o=test_%.tree)
 	@rm -f $(TSTS:test_%.h2o=test_%.run)
 	rm -f $(OBJS) $(ASMS) $(MAINS:%.c=%.o) $(LANGS:%.cu=%.o) water.vm libWater.a
 
@@ -128,15 +127,12 @@ libWater.a : $(C_SOURCES:%.c=%.o)
 %.c : %.cu $(COPPER)
 	$(COPPER) --name $(@:%.c=%_graph) --output $@ --file $<
 
-test_%.cc : test_%.h2o $(WATER.test)
-	./$(WATER.test) --name $(@:%.cc=%_graph) --output $@ --file $<
+test_%.tree : test_%.h2o $(WATER.test)
+	./$(WATER.test) --name $(@:%.tree=%_graph) --output $@ --file $<
 
-test_%.o : test_%.cc
-	$(GCC) $(CFLAGS) -I. -c -o $@ $<
-
-test_%.run : test_%.o
-	@rm -f $@ $<
-	@mv ${<:%.o=%.cc} $@
+test_%.run : test_%.tree
+	$(GCC) -x c $(CFLAGS) -I. -S -o $@ $<
+	@mv $< $@
 
 .depends : ; @mkdir .depends
 
