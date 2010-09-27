@@ -179,7 +179,6 @@ typedef enum water_cache_type {
     cache_void,
 } H2oCacheType;
 
-typedef void                  *H2oIndex;
 typedef struct water_chain    *H2oChain;
 typedef struct water_function *H2oFunction;
 typedef struct water_action   *H2oAction;
@@ -225,7 +224,7 @@ struct water_function {
 // - water_Root
 struct water_action {
     H2oOperation oper;
-    H2oIndex     index;
+    unsigned     index;
     H2oCache     cache;
     H2oUserName  name;
 };
@@ -240,11 +239,15 @@ struct water_group {
 };
 
 struct water_cache {
-    H2oCache      next;
     H2oCacheType type;
+    H2oCache      next;
     const char **names;
     void       **values;
 };
+
+extern bool h2o_AddName(Water, const char*, const H2oCode);
+extern bool h2o_AddCache(Water, H2oCache);
+
 
 /////////////////////
 // end of file

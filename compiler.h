@@ -216,8 +216,8 @@ struct water_parser {
 
 extern unsigned int h2o_global_debug;
 
-extern bool water_Create(const char* name, H2oParser *target);
-extern void water_Parse(H2oParser water);
+extern bool water_Create(const char* infile, const char* outfile, H2oParser *target);
+extern void water_Parse(H2oParser water, const char* name);
 extern bool water_Free(H2oParser value);
 
 #endif

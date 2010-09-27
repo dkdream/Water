@@ -95,17 +95,23 @@ int main(int argc, char **argv)
     cu_global_debug  = do_trace;
     h2o_global_debug = do_debug;
 
-    H2oParser water = 0;
-
-    if (!water_Create(infile, &water)) {
-        printf("unable to create parser\n");
+    if (!funcname) {
+        fprintf(stderr, "a function name MUST be defined\n");
         exit(1);
     }
 
-    water_Parse(water);
+
+    H2oParser water = 0;
+
+    if (!water_Create(infile, outfile, &water)) {
+        fprintf(stderr, "unable to create parser\n");
+        exit(1);
+    }
+
+    water_Parse(water, funcname);
 
     if (!water_Free(water)) {
-        printf("unable to free parser\n");
+        fprintf(stderr, "unable to free parser\n");
         exit(1);
     }
 

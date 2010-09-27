@@ -84,14 +84,19 @@ static bool water_vm(Water water, H2oCode start)
         return water_vm(water, code);
     }
 
-    inline bool apply_code(H2oIndex index) {
-        H2oCode code;
+    inline void* fetch_code(H2oAction action) {
+        H2oCache cache  = action->cache;
+        return cache->values[action->index];
+    }
+
+    inline bool apply_code(H2oAction action) {
+        H2oCode code = fetch_code(action);
         if (!(water->code)(water, (H2oUserName) index, &code)) return false;
         return call_with(code);
     }
 
-    inline bool add_event(H2oIndex index) {
-        H2oEvent event;
+    inline bool add_event(H2oAction action) {
+        H2oEvent event = fetch_code(action);
         if (!(water->event)(water, (H2oUserName) index, &event)) return false;
         H2oThread value = water->free_list;
         if (!value) {
@@ -112,14 +117,14 @@ static bool water_vm(Water water, H2oCode start)
 
         return true;
     }
-    inline bool apply_predicate(H2oIndex index) {
-        H2oPredicate predicate;
+    inline bool apply_predicate(H2oAction action) {
+        H2oPredicate predicate = fetch_code(action);
         if (!(water->predicate)(water, (H2oUserName) index, &predicate)) return false;
         return predicate(water, water->cursor.current);
     }
-    inline bool match_root(H2oIndex index) {
-        H2oUserType type;
-        if (!(water->type)(water, (H2oUserName) index, &type))      return false;
+    inline bool match_root(H2oAction action) {
+        H2oUserType type = fetch_code(action);
+        if (!(water->type)(water, (H2oUserName) index, &type))   return false;
         if (!(water->match)(water, type, water->cursor.current)) return false;
         return true;
     }
@@ -160,12 +165,12 @@ static bool water_vm(Water water, H2oCode start)
 
     inline bool water_apply() {
         H2oAction action = (H2oAction) start;
-        return apply_code(action->index);
+        return apply_code(action);
     }
 
     inline bool water_root() {
         H2oAction action = (H2oAction) start;
-        return match_root(action->index);
+        return match_root(action);
     }
 
     inline bool water_childern() {
@@ -181,12 +186,12 @@ static bool water_vm(Water water, H2oCode start)
 
     inline bool water_event() {
         H2oAction action = (H2oAction) start;
-        return add_event(action->index);
+        return add_event(action);
     }
 
     inline bool water_predicate() {
         H2oAction action = (H2oAction) start;
-        return apply_predicate(action->index);
+        return apply_predicate(action);
     }
 
     inline bool water_begin() {
