@@ -1,6 +1,7 @@
-
-Let           = Let: ->@begin [ ( LetAssign ->@lets )+,  ( %any )* ] @end
-LetAssign     = LetAssign:[ Value ->@value, ParameterName:[Symbol ->@assign] ]
-Value         = Value: ->@value
-Symbol        = Symbol: ->@symbol []
-
+Start     = Let | AnyTree | AnyLeaf
+Let       = Let: ->@begin [ ( LetAssign ->@lets )+,  ( %any )* ] @end
+LetAssign = LetAssign:[ Value ->@value, ParameterName:[Symbol ->@assign] ]
+Value     = Value: ->@value
+Symbol    = Symbol: ->@symbol []
+AnyTree   = %any [ ( Start )* ] 
+AnyLeaf   = %any [ ]
