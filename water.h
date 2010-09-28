@@ -245,9 +245,51 @@ struct water_cache {
     void       **values;
 };
 
+extern bool h2o_WaterInit(Water, unsigned cacheSize);
+extern bool h2o_Parse(Water, const char* rule, H2oUserNode tree);
+extern bool h2o_RunQueue(Water);
+
+extern unsigned h2o_global_debug;
+extern void     h2o_debug(const char *filename, unsigned int linenum, const char *format, ...);
+extern void     h2o_error(const char *filename, unsigned int linenum, const char *format, ...);
+extern void     h2o_error_part(const char *format, ...);
+
+static inline void h2o_noop() __attribute__((always_inline));
+static inline void h2o_noop() { return; }
+
+#if 1
+#define H2O_DEBUG(level, args...) ({ typeof (level) hold__ = (level); if (hold__ <= h2o_global_debug) h2o_debug(__FILE__,  __LINE__, args); })
+#else
+#define H2O_DEBUG(level, args...) h2o_noop()
+#endif
+
+#if 1
+#define H2O_ON_DEBUG(level, arg) ({ typeof (level) hold__ = (level); if (hold__ <= h2o_global_debug) arg; })
+#else
+#define H2O_DEBUG(level, args...) h2o_noop()
+#endif
+
+#if 1
+#define H2O_ERROR(args...) h2o_error(__FILE__,  __LINE__, args)
+#else
+#define H2O_ERROR(args...) h2o_noop()
+#endif
+
+#if 1
+#define H2O_ERROR_PART(args...) h2o_error_part(args)
+#else
+#define H2O_ERROR_PART(args...) h2o_noop()
+#endif
+
+#if 1
+#define H2O_ERROR_AT(args...) h2o_error(args)
+#else
+#define H2O_ERROR_AT(args...) h2o_noop()
+#endif
+
+// used internally ONLY
 extern bool h2o_AddName(Water, const char*, const H2oCode);
 extern bool h2o_AddCache(Water, H2oCache);
-
 
 /////////////////////
 // end of file
