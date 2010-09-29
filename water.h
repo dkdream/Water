@@ -107,7 +107,7 @@ static bool example_GetFirst(Water water, H2oLocation location) {
     return true;
 }
 
-static bool example_GetNextt(Water water, H2oLocation location) {
+static bool example_GetNext(Water water, H2oLocation location) {
     if (!water)    return false;
     if (!location) return false;
 
@@ -240,7 +240,8 @@ struct water_group {
 
 struct water_cache {
     H2oCacheType type;
-    H2oCache      next;
+    H2oCache     next;
+    unsigned     count;
     const char **names;
     void       **values;
 };

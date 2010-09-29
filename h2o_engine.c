@@ -319,6 +319,15 @@ static bool water_vm(Water water, H2oCode start)
  *************************************************************************************
  *************************************************************************************/
 
+extern bool h2o_WaterInit(Water water, unsigned cacheSize) {
+    return true;
+}
+
+extern bool h2o_Parse(Water water, const char* rule, H2oUserNode tree) {
+
+}
+
+
 extern bool h2o_RunQueue(Water water) {
     if (!water) return false;
     if (!water->begin) return true;
@@ -342,7 +351,6 @@ extern bool h2o_RunQueue(Water water) {
     return true;
 }
 
-#if 0
 unsigned h2o_global_debug = 0;
 
 extern void h2o_debug(const char *filename,
@@ -352,9 +360,9 @@ extern void h2o_debug(const char *filename,
 {
     va_list ap; va_start (ap, format);
 
-    //    printf("file %s line %u :: ", filename, linenum);
-    vprintf(format, ap);
-    fflush(stdout);
+    fprintf(stderr, "file %s line %u :: ", filename, linenum);
+    vfprintf(stderr, format, ap);
+    fflush(stderr);
 }
 
 extern void h2o_error(const char *filename,
@@ -364,17 +372,53 @@ extern void h2o_error(const char *filename,
 {
     va_list ap; va_start (ap, format);
 
-    printf("file %s line %u :: ", filename, linenum);
-    vprintf(format, ap);
+    fprintf(stderr, "file %s line %u :: ", filename, linenum);
+    vfprintf(stderr, format, ap);
     exit(1);
 }
 
 extern void h2o_error_part(const char *format, ...)
 {
     va_list ap; va_start (ap, format);
-    vprintf(format, ap);
+    vfprintf(stderr, format, ap);
 }
-#endif
+
+extern bool h2o_AddName(Water water, const char* name, const H2oCode code) {
+    if (!water)         return false;
+    if (!water->attach) return false;
+
+    return water->attach(water, name, code);
+}
+extern bool h2o_AddCache(Water water, H2oCache cache) {
+    if (!water) return false;
+    if (!cache) return false;
+    if (cache->next) return false;
+
+    switch (cache->type) {
+    case rule_cache:
+        cache->next = water->rules;
+        water->rules = cache;
+        break;
+    case root_cache:
+        cache->next = water->roots;
+        water->roots = cache;
+        break;
+    case event_cache:
+        cache->next = water->events;
+        water->events = cache;
+        break;
+    case predicate_cache:
+        cache->next = water->predicates;
+        water->predicates = cache;
+        break;
+    case cache_void:
+        return false;
+    }
+
+    return true;
+}
+
+
 
 
 

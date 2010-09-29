@@ -1274,10 +1274,10 @@ static bool write_Ccode(H2oParser water,
     write_Table(water, &water->predicate);
 
     fprintf(water->output, "\n");
-    fprintf(water->output, "struct water_cache rules      = { rule_cache,      0, rule_list,      0, };\n");
-    fprintf(water->output, "struct water_cache roots      = { root_cache,      0, root_list,      0, };\n");
-    fprintf(water->output, "struct water_cache events     = { event_cache,     0, event_list,     0, };\n");
-    fprintf(water->output, "struct water_cache predicates = { predicate_cache, 0, predicate_list, 0, };\n");
+    fprintf(water->output, "struct water_cache rules      = { rule_cache,      0, %u, rule_list,      0, };\n", water->identifer.count);
+    fprintf(water->output, "struct water_cache roots      = { root_cache,      0, %u, root_list,      0, };\n", water->label.count);
+    fprintf(water->output, "struct water_cache events     = { event_cache,     0, %u, event_list,     0, };\n", water->event.count);
+    fprintf(water->output, "struct water_cache predicates = { predicate_cache, 0, %u, predicate_list, 0, };\n", water->predicate.count);
     fprintf(water->output, "\n");
 
     H2oDefine rule = water->rule;
