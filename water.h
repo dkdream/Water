@@ -1,5 +1,5 @@
-#if !defined(_topaz_h_)
-#define _topaz_h_
+#if !defined(_water_h_)
+#define _water_h_
 ////////////////////////////
 //
 // Project: *current project*
