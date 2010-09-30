@@ -17,10 +17,14 @@
 // Interface
 //   --
 //
+#include <water.h>
+
+/* */
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 
 typedef struct test_node  *Node_test;
@@ -49,9 +53,9 @@ static bool GetFirst_test(Water water, H2oLocation location) {
 
     struct test_node *node = location->root;
 
-    if (!node) return false;
+    fprintf(stderr, "first of %x\n", (unsigned) node);
 
-    // if (!hasChildern(node->type)) return false;
+    if (!node) return false;
 
     if (0 >= node->size) return false;
 
@@ -67,15 +71,17 @@ static bool GetNext_test(Water water, H2oLocation location) {
 
     struct test_node *node = location->root;
 
-    if (!node) return false;
+    fprintf(stderr, "next of %x\n", (unsigned) node);
 
-    // if (!hasChildern(node->type)) return false;
+    if (!node) return false;
 
     unsigned index = (unsigned) location->offset;
 
     index += 1;
 
     if (index >= node->size) return false;
+
+    fprintf(stderr, "fetching %x[%u]\n", (unsigned) node, index);
 
     location->offset  = (H2oUserMark) index;
     location->current = (H2oUserNode) node->childern[index];
@@ -85,10 +91,15 @@ static bool GetNext_test(Water water, H2oLocation location) {
 
 static bool MatchNode_test(Water water,  H2oUserType utype, H2oUserNode unode) {
     if (!water) return false;
-    if (!unode)  return false;
+
+    fprintf(stderr, "check node %x for type[%u]\n", unode, utype);
+
+    if (!unode) return false;
 
     unsigned          type = (unsigned) utype;
     struct test_node *node = unode;
+
+    fprintf(stderr, "comparing type[%u] to node type[%u]\n", (unsigned) utype, node->type);
 
     return type == node->type;
 }
@@ -129,8 +140,8 @@ static bool stack_Init(unsigned count, Stack_test target) {
 }
 
 static bool stack_Push(Stack_test stack, Node_test value) {
-    if (!stack)     return false;
-    if (!value.any) return false;
+    if (!stack) return false;
+    if (!value) return false;
 
     Cell_test cell = stack->free_list;
 
@@ -139,6 +150,8 @@ static bool stack_Push(Stack_test stack, Node_test value) {
     } else {
         if (!cell_Create(&cell)) return false;
     }
+
+    fprintf(stderr, "pushing node %x %u size %u\n", (unsigned) value, value->type, value->size);
 
     cell->next  = stack->top;
     cell->value = value;
@@ -150,7 +163,7 @@ static bool stack_Push(Stack_test stack, Node_test value) {
 
 static bool stack_Pop(Stack_test stack, Node_test *value) {
     if (!stack)      return false;
-    if (!value.node) return false;
+    if (!value)      return false;
     if (!stack->top) return false;
 
     Cell_test cell = stack->top;
@@ -161,6 +174,8 @@ static bool stack_Pop(Stack_test stack, Node_test *value) {
     stack->free_list = cell;
 
     *value = cell->value;
+
+    fprintf(stderr, "popping node %x %u size %u\n", (unsigned) *value, (*value)->type, (*value)->size);
 
     return true;
 }
@@ -179,6 +194,8 @@ static bool stack_Swap(Stack_test stack) {
     stk1->next = stk3;
     stk2->next = stk1;
     stack->top = stk2;
+
+    fprintf(stderr, "swap\n");
 
     return true;
 }
@@ -203,6 +220,8 @@ static bool node_Create(Node_test *target, unsigned type, unsigned size, Stack_t
     for ( ; size-- ; ) {
         if (!stack_Pop(stack, &result->childern[size])) return false;
     }
+
+    *target = result;
 
     return true;
 }

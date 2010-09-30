@@ -33,19 +33,20 @@ WATER_LIB := -L../ -lWater
 #
 GCC      := gcc
 DBFLAGS  := -ggdb -Wall -mtune=i686
-INCFLAGS := $(WATER_INC)
+INCFLAGS := $(WATER_INC) $(COPPER_INC)
 CFLAGS   := $(DBFLAGS) $(INCFLAGS)
 LIBFLAGS := $(WATER_LIB)
 
 #
 #
+MAINS     := $(notdir $(wildcard test_*.c))
 LANGS     := $(notdir $(wildcard *.h2o))
 C_SOURCES := $(filter-out $(MAINS) $(LANGS:%.h2o=%.c),$(notdir $(wildcard *.c)))
 H_SOURCES := $(notdir $(wildcard *.h))
 
 #
 #
-all ::
+all :: $(MAINS:%.c=%.x)
 
 test ::
 
@@ -56,9 +57,9 @@ $(RUNS) : $(WATER)
 water_compile : $(LANGS:%.h2o=%.o)
 
 clean ::
-	@rm -rf .depends
-	@rm -f .*~ *~
-	rm -f $(OBJS) $(ASMS) $(LANGS:%.h2o=%.o) $(LANGS:%.h2o=%.c)
+	@rm -rf .depends .tests
+	@rm -f .*~ *~ *.x
+	rm -f $(OBJS) $(ASMS) $(LANGS:%.h2o=%.o) $(LANGS:%.h2o=%.c) $(MAINS:%.c=%.o)
 
 scrub :: 
 	@make clean
@@ -89,10 +90,26 @@ scrub ::
 %.o : %.c
 	$(GCC) $(CFLAGS) -c -o $@ $<
 
+%.x : %.o ; $(GCC) $(CFLAGS) -o $@ $^ $(LIBFLAGS)
+
+#
+#
+#
+
 .depends : ; @mkdir .depends
 
 .depends/%.d : %.c .depends ; @$(GCC) $(CFLAGS) -MM -MP -MG -MF $@ $<
 
+#
+#
+#
+
 -include $(DEPENDS)
+
+.tests : ; @mkdir .tests
+
+.tests/%.mk : test_%.c .tests ./test.rules ; @./test.rules $(@:.tests/%.mk=%) > $@
+
+-include $(MAINS:test_%.c=./.tests/%.mk)
 
 

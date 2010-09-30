@@ -241,6 +241,33 @@ struct water_cache {
     void       **values;
 };
 
+static inline const char* oper2text(H2oOperation oper) {
+    switch (oper) {
+    case water_Any       : return "Any";
+    case water_And       : return "And";
+    case water_Or        : return "Or";
+    case water_Not       : return "Not";
+    case water_Assert    : return "Assert";
+    case water_Apply     : return "Apply";
+    case water_Root      : return "Root";
+    case water_Childern  : return "Childern";
+    case water_Leaf      : return "Leaf";
+    case water_Predicate : return "Predicate";
+    case water_Event     : return "Event";
+    case water_Begin     : return "Begin";
+    case water_Tuple     : return "Tuple";
+    case water_Select    : return "Select";
+    case water_Sequence  : return "Sequence";
+    case water_ZeroPlus  : return "ZeroPlus";
+    case water_OnePlus   : return "OnePlus";
+    case water_Maybe     : return "Maybe";
+    case water_Range     : return "Range";
+    case water_End       : return "End";
+    default: break;
+    }
+    return "unknown";
+}
+
 extern bool h2o_WaterInit(Water, unsigned cacheSize);
 extern bool h2o_Parse(Water, const char* rule, H2oUserNode tree);
 extern bool h2o_RunQueue(Water);

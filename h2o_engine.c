@@ -69,13 +69,15 @@ static bool water_vm(Water water, H2oCode start)
     inline bool reset() {
         water->cursor = marker.location;
         water->end    = marker.end;
-        H2oThread current = marker.end->next;
-        marker.end->next  = 0;
-        while (current) {
-            H2oThread next = current->next;
-            current->next = water->free_list;
-            water->free_list = current;
-            current = next;
+        if (marker.end) {
+            H2oThread current = marker.end->next;
+            marker.end->next  = 0;
+            while (current) {
+                H2oThread next = current->next;
+                current->next = water->free_list;
+                water->free_list = current;
+                current = next;
+            }
         }
         return true;
     }
@@ -91,13 +93,15 @@ static bool water_vm(Water water, H2oCode start)
 
     inline bool apply_code(H2oAction action) {
         H2oCode code = fetch_code(action);
-        if (!(water->code)(water, (H2oUserName) index, &code)) return false;
+        if (!code) return false;
+        H2O_DEBUG(2, "calling rule %s\n", action->name);
         return call_with(code);
     }
 
     inline bool add_event(H2oAction action) {
         H2oEvent event = fetch_code(action);
-        if (!(water->event)(water, (H2oUserName) index, &event)) return false;
+        if (!event) return false;
+        H2O_DEBUG(2, "adding event %s\n", action->name);
         H2oThread value = water->free_list;
         if (!value) {
             if (!make_Thread(event, water->cursor.current, &value)) return false;
@@ -120,14 +124,19 @@ static bool water_vm(Water water, H2oCode start)
 
     inline bool apply_predicate(H2oAction action) {
         H2oPredicate predicate = fetch_code(action);
-        if (!(water->predicate)(water, (H2oUserName) index, &predicate)) return false;
+        if (!predicate) return false;
+        H2O_DEBUG(2, "apply predicate %s\n", action->name);
         return predicate(water, water->cursor.current);
     }
 
     inline bool match_root(H2oAction action) {
         H2oUserType type = fetch_code(action);
-        if (!(water->type)(water, (H2oUserName) index, &type))   return false;
-        if (!(water->match)(water, type, water->cursor.current)) return false;
+        if (!type) return false;
+        H2O_DEBUG(2, "testing root %s\n", action->name);
+        if (!(water->match)(water, type, water->cursor.current)) {
+            H2O_DEBUG(2, "testing root %s - false\n", action->name);
+            return false;
+        }
         return true;
     }
 
@@ -137,7 +146,7 @@ static bool water_vm(Water water, H2oCode start)
         H2oChain chain = (H2oChain) start;
         if (!mark()) return false;
         if (!call_with(chain->before)) return false;
-        if (call_with(chain->before))  return true;
+        if (call_with(chain->after))  return true;
         reset();
         return false;
     }
@@ -145,7 +154,7 @@ static bool water_vm(Water water, H2oCode start)
     inline bool water_or() {
         H2oChain chain = (H2oChain) start;
         if (call_with(chain->before)) return true;
-        if (call_with(chain->before)) return true;
+        if (call_with(chain->after)) return true;
         return false;
     }
 
@@ -181,6 +190,10 @@ static bool water_vm(Water water, H2oCode start)
         water->cursor.root    = holding.current;
         water->cursor.offset  = 0;
         water->cursor.current = 0;
+        if (!water->first(water, &water->cursor)) {
+            water->cursor = holding;
+            return false;
+        }
         bool result = call_with(function->argument);
         water->cursor = holding;
         return result;
@@ -217,14 +230,14 @@ static bool water_vm(Water water, H2oCode start)
     inline bool water_select() {
         H2oChain chain = (H2oChain) start;
         if (call_with(chain->before)) return true;
-        if (call_with(chain->before)) return true;
+        if (call_with(chain->after)) return true;
         return false;
     }
 
     inline bool water_sequence() {
         H2oChain chain = (H2oChain) start;
         if (!call_with(chain->before)) return false;
-        if (call_with(chain->before))  return true;
+        if (call_with(chain->after))  return true;
         return false;
     }
 
@@ -290,6 +303,8 @@ static bool water_vm(Water water, H2oCode start)
         return !(water->next)(water, &check);
     }
 
+    H2O_DEBUG(2, "operation %s\n", oper2text(start->oper));
+
     switch (start->oper) {
     case water_Any:       return water_any();       // match any root
     case water_And:       return water_and();       // is the root A and B
@@ -341,26 +356,29 @@ static bool reload_Cache(Water water, H2oCache cache) {
     H2o_FetchValue fetch;
 
     inline bool fetch_value(unsigned index) {
-        const char *rule = names[index];
-        if (!fetch(water, rule, &values[index])) return false;
+        const char *name = names[index];
+        if (!fetch(water, name, &values[index])) {
+            fprintf(stderr, "unable to find %s\n", name);
+            return false;
+        }
         return true;
     }
 
     switch (cache->type) {
     case rule_cache:
-        fetch = water->code;
+        fetch = (H2o_FetchValue) water->code;
         break;
 
     case root_cache:
-        fetch = water->type;
+        fetch = (H2o_FetchValue) water->type;
         break;
 
     case event_cache:
-        fetch = water->event;
+        fetch = (H2o_FetchValue) water->event;
         break;
 
     case predicate_cache:
-        fetch = water->predicate;
+        fetch = (H2o_FetchValue) water->predicate;
         break;
 
     case cache_void:
