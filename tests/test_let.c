@@ -24,8 +24,9 @@ static const NVPair value     = { "Value",         3 };
 static const NVPair parameter = { "ParameterName", 4 };
 static const NVPair symbol    = { "Symbol",        5 };
 static const NVPair statement = { "Statement",     6 };
+static const NVPair block     = { "Block",     7 };
 
-static const NVPair* type_map[] = { &let, &assign, &value, &parameter, &symbol, &statement, 0 };
+static const NVPair* type_map[] = { &let, &assign, &value, &parameter, &symbol, &statement, &block, 0 };
 
 static bool findType(Water water, H2oUserName name, H2oUserType* result) {
     if (!water) return false;
@@ -110,6 +111,11 @@ static bool symbol_event(Water water, H2oUserNode value) {
     return true;
 }
 
+static bool statement_event(Water water, H2oUserNode value) {
+    printf("statement\n");
+    return true;
+}
+
 struct water the_walker;
 
 static bool setup_walker() {
@@ -134,6 +140,7 @@ static bool setup_walker() {
     setEvent(&the_walker, "value",  value_event);
     setEvent(&the_walker, "assign", assign_event);
     setEvent(&the_walker, "symbol", symbol_event);
+    setEvent(&the_walker, "statement", statement_event);
 
     let_graph(&the_walker);
 
@@ -168,6 +175,8 @@ int main(int argc, char **argv)
     push_tree("LetAssign", 2);
     push_tree("Statement", 0);
     push_tree("Let", 2);
+    push_tree("Statement", 0);
+    push_tree("Block", 2);
 
     Node_test value;
 

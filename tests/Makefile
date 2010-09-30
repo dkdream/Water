@@ -46,7 +46,7 @@ H_SOURCES := $(notdir $(wildcard *.h))
 
 #
 #
-all :: $(MAINS:%.c=%.x)
+all :: $(MAINS:%.c=%.run)
 
 test ::
 
@@ -58,7 +58,7 @@ water_compile : $(LANGS:%.h2o=%.o)
 
 clean ::
 	@rm -rf .depends .tests
-	@rm -f .*~ *~ *.x
+	@rm -f .*~ *~ *.x test_*.run test_*.log
 	rm -f $(OBJS) $(ASMS) $(LANGS:%.h2o=%.o) $(LANGS:%.h2o=%.c) $(MAINS:%.c=%.o)
 
 scrub :: 
@@ -91,6 +91,8 @@ scrub ::
 	$(GCC) $(CFLAGS) -c -o $@ $<
 
 %.x : %.o ; $(GCC) $(CFLAGS) -o $@ $^ $(LIBFLAGS)
+
+%.run : %.x ; ./$< > $@ 2> $(@:%.run=%.log)
 
 #
 #
