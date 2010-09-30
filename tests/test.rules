@@ -1,0 +1,9 @@
+#!/bin/sh
+
+test=$1
+
+cat <<__END
+test_$1.x : test_$1.o $1.o
+
+__END
+
