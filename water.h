@@ -186,6 +186,7 @@ typedef struct water_group    *H2oGroup;
 // - water_Leaf
 struct water_code {
     H2oOperation oper;
+    const char*  label;
 };
 
 // used by
@@ -196,6 +197,7 @@ struct water_code {
 // - water_Sequence
 struct water_chain {
     H2oOperation oper;
+    const char*  label;
     H2oCode      before;
     H2oCode      after;
 };
@@ -209,6 +211,7 @@ struct water_chain {
 // - water_Childern
 struct water_function {
     H2oOperation oper;
+    const char*  label;
     H2oCode      argument;
 };
 
@@ -219,6 +222,7 @@ struct water_function {
 // - water_Root
 struct water_action {
     H2oOperation oper;
+    const char*  label;
     unsigned     index;
     H2oCache     cache;
     H2oUserName  name;
@@ -228,6 +232,7 @@ struct water_action {
 // - water_Range
 struct water_group {
     H2oOperation oper;
+    const char*  label;
     H2oCode      argument;
     unsigned     minimum; // minimum < maximum unless maximum == zero
     unsigned     maximum; // zero means until GetNext returns false

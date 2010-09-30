@@ -999,7 +999,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         H2oText text = match.text;
         fprintf(water->output, "static struct water_action ");
         lvalue(text);
-        fprintf(water->output, " = { water_Apply, %u, &rules, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Apply, \"L%.6x\", %u, &rules, \"%*.*s\" };\n",
+                text->id,
                 text->index,
                 text->value.length,
                 text->value.length,
@@ -1011,7 +1012,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         H2oText text = match.text;
         fprintf(water->output, "static struct water_action ");
         lvalue(text);
-        fprintf(water->output, " = { water_Root, %u, &roots, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Root, \"L%.6x\", %u, &roots, \"%*.*s\" };\n",
+                text->id,
                 text->index,
                 text->value.length,
                 text->value.length,
@@ -1023,7 +1025,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         H2oText text = match.text;
         fprintf(water->output, "static struct water_action ");
         lvalue(text);
-        fprintf(water->output, " = { water_Event, %u, &events, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Event, \"L%.6x\", %u, &events, \"%*.*s\" };\n",
+                text->id,
                 text->index,
                 text->value.length,
                 text->value.length,
@@ -1036,7 +1039,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         fprintf(water->output, "static struct water_action ");
 
         lvalue(text);
-        fprintf(water->output, " = { water_Predicate, %u, &predicates, \"%*.*s\" };\n",
+        fprintf(water->output, " = { water_Predicate, \"L%.6x\", %u, &predicates, \"%*.*s\" };\n",
+                text->id,
                 text->index,
                 text->value.length,
                 text->value.length,
@@ -1049,7 +1053,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(operator->value);
         fprintf(water->output, "static const struct water_function ");
         lvalue(match);
-        fprintf(water->output, " = { water_Not, ");
+        fprintf(water->output, " = { water_Not, \"L%.6x\", ", operator->id);
         avalue(operator->value);
         fprintf(water->output, " };\n");
         return true;
@@ -1060,7 +1064,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(operator->value);
         fprintf(water->output, "static const struct water_function ");
         lvalue(match);
-        fprintf(water->output, " = { water_Assert, ");
+        fprintf(water->output, " = { water_Assert, \"L%.6x\", ", operator->id);
         avalue(operator->value);
         fprintf(water->output, " };\n");
         return true;
@@ -1071,7 +1075,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(operator->value);
         fprintf(water->output, "static const struct water_function ");
         lvalue(match);
-        fprintf(water->output, " = { water_ZeroPlus, ");
+        fprintf(water->output, " = { water_ZeroPlus, \"L%.6x\", ", operator->id);
         avalue(operator->value);
         fprintf(water->output, " };\n");
         return true;
@@ -1082,7 +1086,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(operator->value);
         fprintf(water->output, "static const struct water_function ");
         lvalue(match);
-        fprintf(water->output, " = { water_OnePlus, ");
+        fprintf(water->output, " = { water_OnePlus, \"L%.6x\", ", operator->id);
         avalue(operator->value);
         fprintf(water->output, " };\n");
         return true;
@@ -1093,7 +1097,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(operator->value);
         fprintf(water->output, "static const struct water_function ");
         lvalue(match);
-        fprintf(water->output, " = { water_Maybe, ");
+        fprintf(water->output, " = { water_Maybe, \"L%.6x\", ", operator->id);
         avalue(operator->value);
         fprintf(water->output, " };\n");
         return true;
@@ -1112,7 +1116,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(range->value);
         fprintf(water->output, "static const struct water_group ");
         lvalue(match);
-        fprintf(water->output, " = { water_Range, ");
+        fprintf(water->output, " = { water_Range, \"L%.6x\", ", range->id);
         avalue(range->value);
         fprintf(water->output, ", %u, %u };\n",
                 range->min,
@@ -1126,7 +1130,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(branch->after);
         fprintf(water->output, "static const struct water_chain ");
         lvalue(match);
-        fprintf(water->output, " = { water_Select, ");
+        fprintf(water->output, " = { water_Select, \"L%.6x\", ", branch->id);
         avalue(branch->before);
         fprintf(water->output, ", ");
         avalue(branch->after);
@@ -1140,7 +1144,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(branch->after);
         fprintf(water->output, "static const struct water_chain ");
         lvalue(match);
-        fprintf(water->output, " = { water_Tuple, ");
+        fprintf(water->output, " = { water_Tuple, \"L%.6x\", ", branch->id);
         avalue(branch->before);
         fprintf(water->output, ", ");
         avalue(branch->after);
@@ -1151,14 +1155,14 @@ static bool write_Tree(H2oParser water, H2oNode match) {
     inline bool write_leaf() {
         fprintf(water->output, "static const struct water_code ");
         lvalue(match);
-        fprintf(water->output, " = { water_Leaf };\n");
+        fprintf(water->output, " = { water_Leaf, \"L%.6x\" };\n", match.any->id);
         return true;
     }
 
     inline bool write_any() {
         fprintf(water->output, "static const struct water_code ");
         lvalue(match);
-        fprintf(water->output, " = { water_Any };\n");
+        fprintf(water->output, " = { water_Any, \"L%.6x\" };\n", match.any->id);
         return true;
     }
 
@@ -1167,7 +1171,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(operator->value);
         fprintf(water->output, "static const struct water_function ");
         lvalue(match);
-        fprintf(water->output, " = { water_Childern, ");
+        fprintf(water->output, " = { water_Childern, \"L%.6x\", ", operator->id);
         avalue(operator->value);
         fprintf(water->output, " };\n");
         return true;
@@ -1179,7 +1183,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(branch->after);
         fprintf(water->output, "static const struct water_chain ");
         lvalue(match);
-        fprintf(water->output, " = { water_And, ");
+        fprintf(water->output, " = { water_And, \"L%.6x\", ", branch->id);
         avalue(branch->before);
         fprintf(water->output, ", ");
         avalue(branch->after);
@@ -1193,7 +1197,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(branch->after);
         fprintf(water->output, "static const struct water_chain ");
         lvalue(match);
-        fprintf(water->output, " = { water_Or, ");
+        fprintf(water->output, " = { water_Or, \"L%.6x\", ", branch->id);
         avalue(branch->before);
         fprintf(water->output, ", ");
         avalue(branch->after);
@@ -1207,7 +1211,7 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         write_node(branch->after);
         fprintf(water->output, "static const struct water_chain ");
         lvalue(match);
-        fprintf(water->output, " = { water_Sequence, ");
+        fprintf(water->output, " = { water_Sequence, \"L%.6x\", ", branch->id);
         avalue(branch->before);
         fprintf(water->output, ", ");
         avalue(branch->after);

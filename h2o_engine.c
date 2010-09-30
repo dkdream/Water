@@ -315,7 +315,7 @@ static bool water_vm(Water water, H2oCode start)
         return !(water->first)(water, &check);
     }
 
-    H2O_DEBUG(2, "operation %s\n", oper2text(start->oper));
+    H2O_DEBUG(2, "operation %s %s\n", oper2text(start->oper), start->label);
 
     switch (start->oper) {
     case water_Any:       return water_any();       // match any root
@@ -468,7 +468,7 @@ extern void h2o_debug(const char *filename,
 {
     va_list ap; va_start (ap, format);
 
-    fprintf(stderr, "file %s line %u :: ", filename, linenum);
+    fprintf(stderr, "file %s line %.4u :: ", filename, linenum);
     vfprintf(stderr, format, ap);
     fflush(stderr);
 }
@@ -480,7 +480,7 @@ extern void h2o_error(const char *filename,
 {
     va_list ap; va_start (ap, format);
 
-    fprintf(stderr, "file %s line %u :: ", filename, linenum);
+    fprintf(stderr, "file %s line %.4u :: ", filename, linenum);
     vfprintf(stderr, format, ap);
     exit(1);
 }
