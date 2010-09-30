@@ -95,13 +95,17 @@ static bool water_vm(Water water, H2oCode start)
         H2oCode code = fetch_code(action);
         if (!code) return false;
         H2O_DEBUG(2, "calling rule %s\n", action->name);
-        return call_with(code);
+        bool result =  call_with(code);
+        H2O_DEBUG(2, "result of rule %s - %s\n", action->name, (result ? "true" : "false"));
+        return result;
     }
 
     inline bool add_event(H2oAction action) {
         H2oEvent event = fetch_code(action);
         if (!event) return false;
-        H2O_DEBUG(2, "adding event %s\n", action->name);
+
+        H2O_DEBUG(2, "adding event --  %s %x\n", action->name, (unsigned) water->cursor.current);
+
         H2oThread value = water->free_list;
         if (!value) {
             if (!make_Thread(event, water->cursor.current, &value)) return false;
@@ -186,14 +190,14 @@ static bool water_vm(Water water, H2oCode start)
 
     inline bool water_childern() {
         H2oFunction function = (H2oFunction) start;
+        struct water_location next;
+        next.root    = water->cursor.current;
+        next.offset  = 0;
+        next.current = 0;
+        if (!water->first(water, &next)) return false;
+
         struct water_location holding = water->cursor;
-        water->cursor.root    = holding.current;
-        water->cursor.offset  = 0;
-        water->cursor.current = 0;
-        if (!water->first(water, &water->cursor)) {
-            water->cursor = holding;
-            return false;
-        }
+        water->cursor = next;
         bool result = call_with(function->argument);
         water->cursor = holding;
         return result;
@@ -221,7 +225,7 @@ static bool water_vm(Water water, H2oCode start)
         if (!mark()) return false;
         if (!call_with(chain->before)) return false;
         if (next_node()) {
-            if (call_with(chain->before)) return true;
+            if (call_with(chain->after)) return true;
         }
         reset();
         return false;
@@ -303,6 +307,14 @@ static bool water_vm(Water water, H2oCode start)
         return !(water->next)(water, &check);
     }
 
+    inline bool water_leaf() {
+        struct water_location check;
+        check.root    = water->cursor.current;
+        check.offset  = 0;
+        check.current = 0;
+        return !(water->first)(water, &check);
+    }
+
     H2O_DEBUG(2, "operation %s\n", oper2text(start->oper));
 
     switch (start->oper) {
@@ -324,7 +336,8 @@ static bool water_vm(Water water, H2oCode start)
     case water_OnePlus:   return water_one_plus();  // match one+
     case water_Maybe:     return water_maybe();     // check then match
     case water_Range:     return water_range();     // match range
-    case water_End:       return water_end();       // check for no child
+    case water_End:       return water_end();       // check for no more siblings
+    case water_Leaf:      return water_leaf();      // check for no childern
     default: break;
     }
 
