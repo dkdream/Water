@@ -150,7 +150,7 @@ static bool water_vm(Water water, H2oCode start)
         H2oChain chain = (H2oChain) start;
         if (!mark()) return false;
         if (!call_with(chain->before)) return false;
-        if (call_with(chain->after))  return true;
+        if (call_with(chain->after))   return true;
         reset();
         return false;
     }
@@ -241,25 +241,39 @@ static bool water_vm(Water water, H2oCode start)
     inline bool water_sequence() {
         H2oChain chain = (H2oChain) start;
         if (!call_with(chain->before)) return false;
-        if (call_with(chain->after))  return true;
+        if (call_with(chain->after))   return true;
         return false;
     }
 
     inline bool water_zero_plus() {
         H2oFunction function = (H2oFunction) start;
-        while (call_with(function->argument)) {
-            if (!next_node()) return true;
+        if (!call_with(function->argument)) {
+            return true;
         }
+        struct water_location last = water->cursor;
+        if (next_node()) {
+            while (call_with(function->argument)) {
+                last = water->cursor;
+                if (!next_node()) break;
+            }
+        }
+        water->cursor = last;
         return true;
     }
 
     inline bool water_one_plus() {
         H2oFunction function = (H2oFunction) start;
-        if (!call_with(function->argument)) return false;
-        if (!next_node()) return true;
-        while (call_with(function->argument)) {
-            if (!next_node()) return true;
+        if (!call_with(function->argument)) {
+            return false;
         }
+        struct water_location last = water->cursor;
+        if (next_node()) {
+            while (call_with(function->argument)) {
+                last = water->cursor;
+                if (!next_node()) break;
+            }
+        }
+        water->cursor = last;
         return true;
     }
 
@@ -315,33 +329,41 @@ static bool water_vm(Water water, H2oCode start)
         return !(water->first)(water, &check);
     }
 
-    H2O_DEBUG(2, "operation %s %s\n", oper2text(start->oper), start->label);
+    inline bool run_code() {
+        switch (start->oper) {
+        case water_Any:       return water_any();       // match any root
+        case water_And:       return water_and();       // is the root A and B
+        case water_Or:        return water_or();        // is the root A or  B
+        case water_Not:       return water_not();       // assert that the root is not A (dont add to the queue)
+        case water_Assert:    return water_assert();    // assert that the root is A     (dont add to the queue)
+        case water_Apply:     return water_apply();     // apply a named code to root
+        case water_Root:      return water_root();      // match root
+        case water_Childern:  return water_childern();  // match childern
+        case water_Event:     return water_event();     // add a event for this node to the event queue
+        case water_Predicate: return water_predicate(); // apply a named predicate to root
+        case water_Begin:     return water_begin();     // check for a first child
+        case water_Tuple:     return water_tuple();     // match all
+        case water_Select:    return water_select();    // match one
+        case water_Sequence:  return water_sequence();  // check all
+        case water_ZeroPlus:  return water_zero_plus(); // match zero+
+        case water_OnePlus:   return water_one_plus();  // match one+
+        case water_Maybe:     return water_maybe();     // check then match
+        case water_Range:     return water_range();     // match range
+        case water_End:       return water_end();       // check for no more siblings
+        case water_Leaf:      return water_leaf();      // check for no childern
+        default: break;
+        }
 
-    switch (start->oper) {
-    case water_Any:       return water_any();       // match any root
-    case water_And:       return water_and();       // is the root A and B
-    case water_Or:        return water_or();        // is the root A or  B
-    case water_Not:       return water_not();       // assert that the root is not A (dont add to the queue)
-    case water_Assert:    return water_assert();    // assert that the root is A     (dont add to the queue)
-    case water_Apply:     return water_apply();     // apply a named code to root
-    case water_Root:      return water_root();      // match root
-    case water_Childern:  return water_childern();  // match childern
-    case water_Event:     return water_event();     // add a event for this node to the event queue
-    case water_Predicate: return water_predicate(); // apply a named predicate to root
-    case water_Begin:     return water_begin();     // check for a first child
-    case water_Tuple:     return water_tuple();     // match all
-    case water_Select:    return water_select();    // match one
-    case water_Sequence:  return water_sequence();  // check all
-    case water_ZeroPlus:  return water_zero_plus(); // match zero+
-    case water_OnePlus:   return water_one_plus();  // match one+
-    case water_Maybe:     return water_maybe();     // check then match
-    case water_Range:     return water_range();     // match range
-    case water_End:       return water_end();       // check for no more siblings
-    case water_Leaf:      return water_leaf();      // check for no childern
-    default: break;
+        return false;
     }
 
-    return false;
+    H2O_DEBUG(2, "operation %s %s\n", oper2text(start->oper), start->label);
+
+    bool result = run_code();
+
+    H2O_DEBUG(2, "operation %s %s - %s\n", oper2text(start->oper), start->label, (result ? "true" : "false"));
+
+    return result;
 }
 
 

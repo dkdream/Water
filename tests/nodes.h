@@ -92,7 +92,7 @@ static bool GetNext_test(Water water, H2oLocation location) {
 static bool MatchNode_test(Water water,  H2oUserType utype, H2oUserNode unode) {
     if (!water) return false;
 
-    fprintf(stderr, "check node %x for type[%u]\n", unode, utype);
+    fprintf(stderr, "check node %x for type[%u]\n", (unsigned) unode, (unsigned) utype);
 
     if (!unode) return false;
 
