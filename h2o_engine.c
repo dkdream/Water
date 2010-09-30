@@ -85,7 +85,7 @@ static bool water_vm(Water water, H2oCode start)
     }
 
     inline void* fetch_code(H2oAction action) {
-        H2oCache cache  = action->cache;
+        H2oCache cache = action->cache;
         return cache->values[action->index];
     }
 
@@ -117,11 +117,13 @@ static bool water_vm(Water water, H2oCode start)
 
         return true;
     }
+
     inline bool apply_predicate(H2oAction action) {
         H2oPredicate predicate = fetch_code(action);
         if (!(water->predicate)(water, (H2oUserName) index, &predicate)) return false;
         return predicate(water, water->cursor.current);
     }
+
     inline bool match_root(H2oAction action) {
         H2oUserType type = fetch_code(action);
         if (!(water->type)(water, (H2oUserName) index, &type))   return false;
@@ -314,17 +316,92 @@ static bool water_vm(Water water, H2oCode start)
     return false;
 }
 
+
+typedef void  *H2o_Value;
+typedef bool (*H2o_FetchValue)(Water, H2oUserName, H2o_Value*);
+
+static bool reload_Cache(Water water, H2oCache cache) {
+    if (!water) return false;
+    if (!cache) return true;
+
+    if (0 >= cache->count) {
+        return reload_Cache(water, cache->next);
+    }
+
+    unsigned size = sizeof(void *) * cache->count;
+
+    if (!cache->values) {
+        cache->values = malloc(size);
+        if (!cache->values) return false;
+    }
+
+    const char **names  = cache->names;
+    void       **values = cache->values;
+
+    H2o_FetchValue fetch;
+
+    inline bool fetch_value(unsigned index) {
+        const char *rule = names[index];
+        if (!fetch(water, rule, &values[index])) return false;
+        return true;
+    }
+
+    switch (cache->type) {
+    case rule_cache:
+        fetch = water->code;
+        break;
+
+    case root_cache:
+        fetch = water->type;
+        break;
+
+    case event_cache:
+        fetch = water->event;
+        break;
+
+    case predicate_cache:
+        fetch = water->predicate;
+        break;
+
+    case cache_void:
+        return false;
+    }
+
+    memset(values, 0, size);
+
+    unsigned index = 0;
+    for ( ; index < cache->count; ++index) {
+        if (!fetch_value(index)) return false;
+    }
+
+    return reload_Cache(water, cache->next);
+}
+
 /*************************************************************************************
  *************************************************************************************
  *************************************************************************************
  *************************************************************************************/
 
 extern bool h2o_WaterInit(Water water, unsigned cacheSize) {
+    if (!water) return false;
+
     return true;
 }
 
 extern bool h2o_Parse(Water water, const char* rule, H2oUserNode tree) {
+    if (!water) return false;
 
+    if (!reload_Cache(water, water->cache)) return false;
+
+    H2oCode code;
+
+    if (!water->code(water, rule, &code)) return false;
+
+    water->cursor.root    = 0;
+    water->cursor.offset  = 0;
+    water->cursor.current = tree;
+
+    return water_vm(water, code);
 }
 
 
@@ -377,8 +454,7 @@ extern void h2o_error(const char *filename,
     exit(1);
 }
 
-extern void h2o_error_part(const char *format, ...)
-{
+extern void h2o_error_part(const char *format, ...) {
     va_list ap; va_start (ap, format);
     vfprintf(stderr, format, ap);
 }
@@ -389,31 +465,15 @@ extern bool h2o_AddName(Water water, const char* name, const H2oCode code) {
 
     return water->attach(water, name, code);
 }
-extern bool h2o_AddCache(Water water, H2oCache cache) {
-    if (!water) return false;
-    if (!cache) return false;
-    if (cache->next) return false;
 
-    switch (cache->type) {
-    case rule_cache:
-        cache->next = water->rules;
-        water->rules = cache;
-        break;
-    case root_cache:
-        cache->next = water->roots;
-        water->roots = cache;
-        break;
-    case event_cache:
-        cache->next = water->events;
-        water->events = cache;
-        break;
-    case predicate_cache:
-        cache->next = water->predicates;
-        water->predicates = cache;
-        break;
-    case cache_void:
-        return false;
-    }
+extern bool h2o_AddCache(Water water, H2oCache cache) {
+    if (!water)                    return false;
+    if (!cache)                    return false;
+    if (cache->next)               return false;
+    if (cache_void == cache->type) return false;
+
+    cache->next = water->cache;
+    water->cache = cache;
 
     return true;
 }

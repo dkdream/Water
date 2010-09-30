@@ -72,12 +72,7 @@ struct water {
     H2oThread begin;
     H2oThread end;
     H2oThread free_list;
-
-    /* caches */
-    H2oCache rules;
-    H2oCache roots;
-    H2oCache events;
-    H2oCache predicates;
+    H2oCache  cache;
 };
 
 /*-------------------------------------------------------------------*/
