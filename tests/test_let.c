@@ -175,6 +175,30 @@ static bool push_tree(const char *name, unsigned childern) {
     return stack_Push(&the_stack, value);
 }
 
+static bool run_walker() {
+    if (!the_stack.top) return false;
+
+    Node_test value = the_stack.top->value;
+
+    node_Print(1, type2name, value);
+
+    fprintf(stderr, "test node %x type %u\n", (unsigned) value, value->type);
+
+    h2o_global_debug = 4;
+
+    if (!h2o_Parse(&the_walker, "Start", value)) {
+        fprintf(stderr, "unable to parse");
+        return false;
+    }
+
+    if (!h2o_RunQueue(&the_walker)) {
+        fprintf(stderr, "unable to run");
+        return false;
+    }
+
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     setup_walker();
@@ -191,25 +215,7 @@ int main(int argc, char **argv)
     stack_Dup(&the_stack);
     push_tree("Block", 2);
 
-    Node_test value;
-
-    stack_Pop(&the_stack, &value);
-
-    node_Print(1, type2name, value);
-
-    fprintf(stderr, "test node %x type %u\n", (unsigned) value, value->type);
-
-    h2o_global_debug = 4;
-
-    if (!h2o_Parse(&the_walker, "Start", value)) {
-        fprintf(stderr, "unable to parse");
-        return 1;
-    }
-
-    if (!h2o_RunQueue(&the_walker)) {
-        fprintf(stderr, "unable to run");
-        return 1;
-    }
+    if (!run_walker()) return 1;
 
     return 0;
 }

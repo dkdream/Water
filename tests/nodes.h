@@ -53,8 +53,6 @@ static bool GetFirst_test(Water water, H2oLocation location) {
 
     struct test_node *node = location->root;
 
-    fprintf(stderr, "first of %x\n", (unsigned) node);
-
     if (!node) return false;
 
     if (0 >= node->size) return false;
@@ -71,8 +69,6 @@ static bool GetNext_test(Water water, H2oLocation location) {
 
     struct test_node *node = location->root;
 
-    fprintf(stderr, "next of %x\n", (unsigned) node);
-
     if (!node) return false;
 
     unsigned index = (unsigned) location->offset;
@@ -80,8 +76,6 @@ static bool GetNext_test(Water water, H2oLocation location) {
     index += 1;
 
     if (index >= node->size) return false;
-
-    fprintf(stderr, "fetching %x[%u]\n", (unsigned) node, index);
 
     location->offset  = (H2oUserMark) index;
     location->current = (H2oUserNode) node->childern[index];
@@ -92,14 +86,10 @@ static bool GetNext_test(Water water, H2oLocation location) {
 static bool MatchNode_test(Water water,  H2oUserType utype, H2oUserNode unode) {
     if (!water) return false;
 
-    fprintf(stderr, "check node %x for type[%u]\n", (unsigned) unode, (unsigned) utype);
-
     if (!unode) return false;
 
     unsigned          type = (unsigned) utype;
     struct test_node *node = unode;
-
-    fprintf(stderr, "comparing type[%u] to node type[%u]\n", (unsigned) utype, node->type);
 
     return type == node->type;
 }
@@ -121,9 +111,9 @@ static inline bool node_Print(unsigned count, const char* (*toText)(unsigned), N
     const char* type = toText(value->type);
 
     if (type) {
-        printf("%s\n", type);
+        printf("%s %x\n", type, (unsigned) value);
     } else {
-        printf("type[%u]\n", value->type);
+        printf("type[%u] %x\n", value->type, (unsigned) value);
     }
 
     unsigned index = 0;
