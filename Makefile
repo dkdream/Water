@@ -53,7 +53,7 @@ RANLIB := ranlib
 MAINS     := water_main.c
 LANGS     := water.cu
 C_SOURCES := $(filter-out $(MAINS) $(LANGS:%.cu=%.c) compiler.c,$(notdir $(wildcard *.c)))
-H_SOURCES := $(filter-out water.h compiler.h, $(notdir $(wildcard *.h)))
+H_SOURCES := $(filter-out compiler.h, $(notdir $(wildcard *.h)))
 
 ASMS    := $(C_SOURCES:%.c=%.s)
 OBJS    := $(C_SOURCES:%.c=%.o)
@@ -67,15 +67,9 @@ test :: $(RUNS)
 	@make --no-print-directory -C tests all
 	@echo all test runs
 
-install : $(WATER) $(H_SOURCES) libWater.a
-	[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
-	[ -d $(INCDIR) ] || mkdir -p $(INCDIR)
-	[ -d $(LIBDIR) ] || mkdir -p $(LIBDIR)
-	cp -p $(WATER) $(BINDIR)/water
-	strip $(BINDIR)/water
-	cp -p $(H_SOURCES) $(INCDIR)/
-	ls -l $(INCDIR)
-	cp -p libWater.a $(LIBDIR)/libWater.a
+install :: $(BINDIR)/water
+install :: $(H_SOURCES:%=$(INCDIR)/%)
+install :: $(LIBDIR)/libWater.a
 
 checkpoint : ; git checkpoint
 
@@ -105,6 +99,20 @@ libWater.a : $(C_SOURCES:%.c=%.o)
 	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $(C_SOURCES:%.c=%.o)
 	$(RANLIB) $@
+
+$(BINDIR) : ; [ -d $@ ] || mkdir -p $@
+$(INCDIR) : ; [ -d $@ ] || mkdir -p $@
+$(LIBDIR) : ; [ -d $@ ] || mkdir -p $@
+
+$(BINDIR)/water : $(BINDIR) $(WATER)
+	cp -p $(WATER) $(BINDIR)/water
+	strip $(BINDIR)/water
+
+$(H_SOURCES:%=$(INCDIR)/%) : $(INCDIR) $(H_SOURCES)
+	cp -p $(H_SOURCES) $(INCDIR)/
+
+$(LIBDIR)/libWater.a : $(LIBDIR) libWater.a
+	cp -p libWater.a $(LIBDIR)/libWater.a
 
 # --
 
