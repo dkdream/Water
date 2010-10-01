@@ -28,6 +28,18 @@ static const NVPair block     = { "Block",     7 };
 
 static const NVPair* type_map[] = { &let, &assign, &value, &parameter, &symbol, &statement, &block, 0 };
 
+static const char* type2name(unsigned type) {
+    unsigned index = 0;
+
+    for ( ; type_map[index] ; ++index) {
+        if (type == type_map[index]->value) {
+            return type_map[index]->name;
+        }
+    }
+
+    return 0;
+}
+
 static bool findType(Water water, H2oUserName name, H2oUserType* result) {
     if (!water) return false;
     if (!name)  return false;
@@ -154,7 +166,7 @@ static bool push_tree(const char *name, unsigned childern) {
 
     if (!findType(&the_walker, name, &type)) return false;
 
-    fprintf(stderr, "constructing node %s %u\n", name, type);
+    fprintf(stderr, "constructing node %s %u\n", name, (unsigned) type);
 
     Node_test value;
 
@@ -173,14 +185,17 @@ int main(int argc, char **argv)
     push_tree("Symbol", 0);
     push_tree("ParameterName", 1);
     push_tree("LetAssign", 2);
+    stack_Dup(&the_stack);
     push_tree("Statement", 0);
-    push_tree("Let", 2);
-    push_tree("Statement", 0);
+    push_tree("Let", 3);
+    stack_Dup(&the_stack);
     push_tree("Block", 2);
 
     Node_test value;
 
     stack_Pop(&the_stack, &value);
+
+    node_Print(1, type2name, value);
 
     fprintf(stderr, "test node %x type %u\n", (unsigned) value, value->type);
 

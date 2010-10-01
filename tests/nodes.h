@@ -104,7 +104,37 @@ static bool MatchNode_test(Water water,  H2oUserType utype, H2oUserNode unode) {
     return type == node->type;
 }
 
-static bool cell_Create(Cell_test *target) {
+static inline bool node_Print(unsigned count, const char* (*toText)(unsigned), Node_test value) {
+    inline void indent() {
+        unsigned at = count;
+        while ( 0 < at--) {
+            printf(". ");
+        }
+    }
+
+    indent();
+    if (!value) {
+        printf("nil\n");
+        return true;
+    }
+
+    const char* type = toText(value->type);
+
+    if (type) {
+        printf("%s\n", type);
+    } else {
+        printf("type[%u]\n", value->type);
+    }
+
+    unsigned index = 0;
+    for ( ; index < value->size ; ++index) {
+        node_Print(count + 1, toText, value->childern[index]);
+    }
+
+    return true;
+}
+
+static inline bool cell_Create(Cell_test *target) {
     if (!target) return false;
 
     Cell_test result = malloc(sizeof(struct test_cell));
@@ -118,7 +148,7 @@ static bool cell_Create(Cell_test *target) {
     return true;
 }
 
-static bool stack_Init(unsigned count, Stack_test target) {
+static inline bool stack_Init(unsigned count, Stack_test target) {
     if (!target) return false;
 
     memset(target, 0, sizeof(struct test_stack));
@@ -139,7 +169,7 @@ static bool stack_Init(unsigned count, Stack_test target) {
     return true;
 }
 
-static bool stack_Push(Stack_test stack, Node_test value) {
+static inline bool stack_Push(Stack_test stack, Node_test value) {
     if (!stack) return false;
     if (!value) return false;
 
@@ -161,7 +191,7 @@ static bool stack_Push(Stack_test stack, Node_test value) {
     return true;
 }
 
-static bool stack_Pop(Stack_test stack, Node_test *value) {
+static inline bool stack_Pop(Stack_test stack, Node_test *value) {
     if (!stack)      return false;
     if (!value)      return false;
     if (!stack->top) return false;
@@ -180,7 +210,18 @@ static bool stack_Pop(Stack_test stack, Node_test *value) {
     return true;
 }
 
-static bool stack_Swap(Stack_test stack) {
+static inline bool stack_Dup(Stack_test stack) {
+    if (!stack)      return false;
+    if (!stack->top) return false;
+
+    Cell_test cell = stack->top;
+
+    stack_Push(stack, cell->value);
+
+    return true;
+}
+
+static inline bool stack_Swap(Stack_test stack) {
     if (!stack)      return false;
     if (!stack->top) return false;
 
@@ -200,7 +241,7 @@ static bool stack_Swap(Stack_test stack) {
     return true;
 }
 
-static bool node_Create(Node_test *target, unsigned type, unsigned size, Stack_test stack) {
+static inline bool node_Create(Node_test *target, unsigned type, unsigned size, Stack_test stack) {
     if (!target) return false;
 
     unsigned fullsize = sizeof(struct test_node) + (sizeof(Node_test) * size);

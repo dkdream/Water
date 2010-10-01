@@ -92,7 +92,9 @@ scrub ::
 
 %.x : %.o ; $(GCC) $(CFLAGS) -o $@ $^ $(LIBFLAGS)
 
-%.run : %.x ; ./$< > $@ 2> $(@:%.run=%.log)
+%.run : %.x
+	./$< > $@ 2> $(@:%.run=%.log)
+	@cat $@
 
 #
 #

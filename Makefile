@@ -64,6 +64,7 @@ DEPENDS := $(C_SOURCES:%.c=.depends/%.d)
 all :: $(WATER)
 
 test :: $(RUNS)
+	@make --no-print-directory -C tests all
 	@echo all test runs
 
 install : $(WATER) $(H_SOURCES) libWater.a
@@ -81,6 +82,7 @@ checkpoint : ; git checkpoint
 $(RUNS) : water.vm
 
 clean ::
+	@make --no-print-directory -C tests $@
 	@rm -rf .depends
 	@rm -f .*~ *~
 	@rm -f $(TSTS:test_%.h2o=test_%.tree)
@@ -89,6 +91,7 @@ clean ::
 
 scrub :: 
 	@make clean
+	@make --no-print-directory -C tests $@
 	rm -f $(LANGS:%.cu=%.c)
 
 water.vm : water_main.o $(LANGS:%.cu=%.o)  compiler.o libWater.a 
