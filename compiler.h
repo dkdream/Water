@@ -101,7 +101,7 @@ struct water_define {
     H2oType   type;
     unsigned  id;
     H2oDefine next;
-    PrsData   name;
+    CuData    name;
     H2oNode   match;
 };
 
@@ -113,7 +113,7 @@ struct water_define {
 struct water_text {
     H2oType  type;
     unsigned id;
-    PrsData  value;
+    CuData   value;
     unsigned index;
 };
 
@@ -184,7 +184,7 @@ struct water_stack {
 };
 
 struct water_symbol {
-    PrsData   name;
+    CuData    name;
     unsigned  index;
     H2oSymbol next;
 };
@@ -196,7 +196,7 @@ struct water_table {
 };
 
 struct water_parser {
-    struct prs_input base;
+    struct copper base;
 
     struct static_table node;
     struct static_table action;
