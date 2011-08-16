@@ -77,8 +77,8 @@ $(RUNS) : water.vm
 
 clean ::
 	@make --no-print-directory -C tests $@
-	@rm -rf .depends
-	@rm -f .*~ *~
+	@rm -rf .depends water_ver.h
+	@rm -f .*~ *~ 
 	@rm -f $(TSTS:test_%.h2o=test_%.tree)
 	@rm -f $(TSTS:test_%.h2o=test_%.run)
 	rm -f $(OBJS) $(ASMS) $(MAINS:%.c=%.o) $(LANGS:%.cu=%.o) water.vm libWater.a
@@ -114,6 +114,9 @@ $(H_SOURCES:%=$(INCDIR)/%) : $(INCDIR) $(H_SOURCES)
 $(LIBDIR)/libWater.a : $(LIBDIR) libWater.a
 	cp -p libWater.a $(LIBDIR)/libWater.a
 
+water_ver.h : FORCE
+	@./Version.gen WATER_VERSION water_ver.h
+
 # --
 
 .PHONY :: all
@@ -126,6 +129,7 @@ $(LIBDIR)/libWater.a : $(LIBDIR) libWater.a
 .PHONY :: scrub
 .PHONY :: scrub
 .PHONY :: tail.check
+.PHONY :: FORCE
 
 ##
 ## rules

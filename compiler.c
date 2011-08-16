@@ -431,6 +431,7 @@ static inline bool node_Create(enum water_type type, H2oTarget target) {
     return true;
 }
 
+#if 0
 static bool water_MoreData(Copper parser)
 {
     H2oParser water = (H2oParser) parser;
@@ -458,7 +459,37 @@ static bool water_MoreData(Copper parser)
 
     return true;
 }
+#else
+static bool water_MoreData(H2oParser water, CuData *target)
+{
+    H2oBuffer tbuffer = &water->buffer;
 
+    if (tbuffer->cursor >= tbuffer->read) {
+        int read = getline(&tbuffer->line, &tbuffer->allocated, tbuffer->input);
+        if (read < 0) {
+            if (ferror(tbuffer->input)) return false;
+            target->length = -1;
+            target->start  = 0;
+            return true;
+        }
+        tbuffer->cursor = 0;
+        tbuffer->read   = read;
+    }
+
+    if (0 < h2o_global_debug) {
+        unsigned line_number = water->base.cursor.line_number + 1;
+        printf("%s[%d] %s", tbuffer->filename, line_number, tbuffer->line);
+    }
+
+    unsigned count = tbuffer->read - tbuffer->cursor;
+
+    target->length   = count;
+    target->start    = tbuffer->line + tbuffer->cursor;
+    tbuffer->cursor += count;
+
+    return true;
+}
+#endif
 
 static bool water_FindNode(Copper parser, CuName name, CuNode* target) {
     H2oParser water = (H2oParser) parser;
@@ -1002,8 +1033,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         fprintf(water->output, " = { water_Apply, \"L%.6x\", %u, &rules, \"%*.*s\" };\n",
                 text->id,
                 text->index,
-                text->value.length,
-                text->value.length,
+                (int) text->value.length,
+                (int) text->value.length,
                 text->value.start);
         return true;
     }
@@ -1015,8 +1046,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         fprintf(water->output, " = { water_Root, \"L%.6x\", %u, &roots, \"%*.*s\" };\n",
                 text->id,
                 text->index,
-                text->value.length,
-                text->value.length,
+                (int) text->value.length,
+                (int) text->value.length,
                 text->value.start);
         return true;
     }
@@ -1028,8 +1059,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         fprintf(water->output, " = { water_Event, \"L%.6x\", %u, &events, \"%*.*s\" };\n",
                 text->id,
                 text->index,
-                text->value.length,
-                text->value.length,
+                (int) text->value.length,
+                (int) text->value.length,
                 text->value.start);
         return true;
     }
@@ -1042,8 +1073,8 @@ static bool write_Tree(H2oParser water, H2oNode match) {
         fprintf(water->output, " = { water_Predicate, \"L%.6x\", %u, &predicates, \"%*.*s\" };\n",
                 text->id,
                 text->index,
-                text->value.length,
-                text->value.length,
+                (int) text->value.length,
+                (int) text->value.length,
                 text->value.start);
         return true;
     }
@@ -1337,7 +1368,6 @@ extern bool water_graph(Copper input);
 static bool water_Init(H2oParser water) {
     memset(water, 0, sizeof(struct water_parser));
 
-    water->base.more      = water_MoreData;
     water->base.node      = water_FindNode;
     water->base.attach    = water_AddName;
     water->base.predicate = water_FindPredicate;
@@ -1426,6 +1456,8 @@ extern void water_Parse(H2oParser water,
         printf("before parse\n");
     }
 
+#if 0
+    // old Copper
     if (!cu_Parse("file", (Copper) water)) {
         cu_SyntaxError(stderr,
                        (Copper) water,
@@ -1436,12 +1468,56 @@ extern void water_Parse(H2oParser water,
     if (0 < h2o_global_debug) {
         printf("before run\n");
     }
-
     if (!cu_RunQueue((Copper) water)) {
         printf("event error\n");
     }
 
     write_Ccode(water, name);
+#else
+    // new Copper
+
+    CuData data = { 0, 0 };
+
+    if (!cu_Start("file", (Copper) water)) {
+        printf("start error\n");
+        return;
+    }
+
+    for ( ; ; ) {
+        switch(cu_Event((Copper) water, data)) {
+        case cu_NeedData:
+            if (!water_MoreData(water, &data)) {
+                printf("read error\n");
+                return;
+            }
+            continue;
+
+        case cu_FoundPath:
+            if (0 < h2o_global_debug) {
+                printf("before run\n");
+            }
+
+            if (!cu_RunQueue((Copper) water)) {
+                printf("event error\n");
+            }
+
+            write_Ccode(water, name);
+            return;
+
+        case cu_NoPath:
+            cu_SyntaxError(stderr,
+                           (Copper) water,
+                           water->buffer.filename);
+            return;
+
+
+        case cu_Error:
+            printf("error error\n");
+            return;
+        }
+    }
+#endif
+
  }
 
 extern bool water_Free(H2oParser water) {

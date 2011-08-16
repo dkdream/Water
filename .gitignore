@@ -10,6 +10,8 @@
 *.vm
 *.a
 water.c
+water_ver.h
+
 
 
 
