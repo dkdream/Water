@@ -59,7 +59,7 @@ ASMS    := $(C_SOURCES:%.c=%.s)
 OBJS    := $(C_SOURCES:%.c=%.o)
 TSTS    := $(notdir $(wildcard *.h2o))
 RUNS    := $(TSTS:test_%.h2o=test_%.run)
-DEPENDS := $(C_SOURCES:%.c=.depends/%.d)
+DEPENDS := $(C_SOURCES:%.c=.depends/%.d) $(MAINS:%.c=.depends/%.d) $(LANGS:%.cu=.depends/%.d)
 
 all :: $(WATER)
 

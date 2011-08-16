@@ -1,4 +1,5 @@
 
+#include "water_ver.h"
 #include "compiler.h"
 #include <copper.h>
 
@@ -46,6 +47,7 @@ int main(int argc, char **argv)
         {"file",    1, 0, 'f'},
         {"output",  1, 0, 'o'},
         {"name",    1, 0, 'n'},
+        {"version", 0, 0,  1},
         {0, 0, 0, 0}
     };
 
@@ -81,6 +83,13 @@ int main(int argc, char **argv)
 
                 case 'n':
                     funcname = optarg;
+                    break;
+
+                case 1:
+                    {
+                        printf("water version %s\n", WATER_VERSION);
+                        exit(0);
+                    }
                     break;
 
                 default:
