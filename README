@@ -1,0 +1,12 @@
+Water tree waker generator.
+it uses a peg grammer to define how to cover and then convert at tree into sequence action
+
+Uses:
+  general-AST to canonical-AST translation
+  AST to assemble-code translation
+
+== UNFINISHED CODE ==
+
+Highlights:
+
+Drawbacks:
