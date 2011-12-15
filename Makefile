@@ -81,7 +81,7 @@ clean ::
 	@rm -f .*~ *~ 
 	@rm -f $(TSTS:test_%.h2o=test_%.tree)
 	@rm -f $(TSTS:test_%.h2o=test_%.run)
-	rm -f $(OBJS) $(ASMS) $(MAINS:%.c=%.o) $(LANGS:%.cu=%.o) water.vm libWater.a
+	rm -f $(OBJS) $(ASMS) $(MAINS:%.c=%.o) $(LANGS:%.cu=%.o) compiler.o water.vm libWater.a
 
 scrub :: 
 	@make clean
