@@ -18,6 +18,7 @@
 //   --
 //
 #include <water.h>
+#include <copper.h>
 
 /* */
 #include <stdbool.h>
@@ -26,19 +27,25 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+//extern size_t      symbol_Make(const char* name);
+extern size_t      symbol_Make(const CuData name);
+extern const char* symbol_Name(size_t symbol);
 
 typedef struct test_node  *Node_test;
 typedef struct test_cell  *Cell_test;
 typedef struct test_stack *Stack_test;
 
 struct test_node {
-    unsigned type;
-    unsigned size;
+    size_t    type; // sizeof(void*)
+    unsigned  size;
     Node_test childern[];
 };
 
 struct test_cell {
-    Node_test value;
+    union {
+        Node_test value;
+        size_t    mark;
+    };
     Cell_test next;
 };
 
@@ -47,8 +54,9 @@ struct test_stack {
     Cell_test free_list;
 };
 
-static bool GetFirst_test(Water water, H2oLocation location) {
-    if (!water)    return false;
+static bool GetFirst_test(Water       water __attribute__ ((unused)),
+                          H2oLocation location)
+{
     if (!location) return false;
 
     struct test_node *node = location->root;
@@ -63,8 +71,9 @@ static bool GetFirst_test(Water water, H2oLocation location) {
     return true;
 }
 
-static bool GetNext_test(Water water, H2oLocation location) {
-    if (!water)    return false;
+static bool GetNext_test(Water       water __attribute__ ((unused)),
+                         H2oLocation location)
+{
     if (!location) return false;
 
     struct test_node *node = location->root;
@@ -83,18 +92,21 @@ static bool GetNext_test(Water water, H2oLocation location) {
     return true;
 }
 
-static bool MatchNode_test(Water water,  H2oUserType utype, H2oUserNode unode) {
-    if (!water) return false;
-
+static bool MatchNode_test(Water       water __attribute__ ((unused)),
+                           H2oUserType utype,
+                           H2oUserNode unode)
+{
     if (!unode) return false;
 
-    unsigned          type = (unsigned) utype;
+    size_t            type = (size_t) utype;
     struct test_node *node = unode;
 
     return type == node->type;
 }
 
-static inline bool node_Print(unsigned count, const char* (*toText)(unsigned), Node_test value) {
+static inline bool node_Print(unsigned count,
+                              Node_test value)
+{
     inline void indent() {
         unsigned at = count;
         while ( 0 < at--) {
@@ -108,17 +120,17 @@ static inline bool node_Print(unsigned count, const char* (*toText)(unsigned), N
         return true;
     }
 
-    const char* type = toText(value->type);
+    const char* type = (const char*) value->type;
 
     if (type) {
-        printf("%s %x\n", type, (unsigned) value);
+        printf("%s %p\n", type, value);
     } else {
-        printf("type[%u] %x\n", value->type, (unsigned) value);
+        printf("type[%Zu] %p\n", value->type, value);
     }
 
     unsigned index = 0;
     for ( ; index < value->size ; ++index) {
-        node_Print(count + 1, toText, value->childern[index]);
+        node_Print(count + 1, value->childern[index]);
     }
 
     return true;
@@ -159,7 +171,25 @@ static inline bool stack_Init(unsigned count, Stack_test target) {
     return true;
 }
 
-static inline bool stack_Push(Stack_test stack, Node_test value) {
+static inline bool stack_Depth(Stack_test stack, size_t *count) {
+    if (!stack) return false;
+    if (!count) return false;
+
+    size_t size = 0;
+
+    Cell_test cell = stack->top;
+
+    for(; cell ;) {
+        size += 1;
+        cell = cell->next;
+    }
+
+    *count = size;
+
+    return true;
+}
+
+static inline bool stack_PushNode(Stack_test stack, Node_test value) {
     if (!stack) return false;
     if (!value) return false;
 
@@ -171,8 +201,6 @@ static inline bool stack_Push(Stack_test stack, Node_test value) {
         if (!cell_Create(&cell)) return false;
     }
 
-    fprintf(stderr, "pushing node %x %u size %u\n", (unsigned) value, value->type, value->size);
-
     cell->next  = stack->top;
     cell->value = value;
 
@@ -181,7 +209,7 @@ static inline bool stack_Push(Stack_test stack, Node_test value) {
     return true;
 }
 
-static inline bool stack_Pop(Stack_test stack, Node_test *value) {
+static inline bool stack_PopNode(Stack_test stack, Node_test *value) {
     if (!stack)      return false;
     if (!value)      return false;
     if (!stack->top) return false;
@@ -195,7 +223,41 @@ static inline bool stack_Pop(Stack_test stack, Node_test *value) {
 
     *value = cell->value;
 
-    fprintf(stderr, "popping node %x %u size %u\n", (unsigned) *value, (*value)->type, (*value)->size);
+    return true;
+}
+
+static inline bool stack_PushMark(Stack_test stack, size_t mark) {
+    if (!stack) return false;
+
+    Cell_test cell = stack->free_list;
+
+    if (cell) {
+        stack->free_list = cell->next;
+    } else {
+        if (!cell_Create(&cell)) return false;
+    }
+
+    cell->next = stack->top;
+    cell->mark = mark;
+
+    stack->top = cell;
+
+    return true;
+}
+
+static inline bool stack_PopMark(Stack_test stack, size_t *mark) {
+    if (!stack)      return false;
+    if (!mark)       return false;
+    if (!stack->top) return false;
+
+    Cell_test cell = stack->top;
+
+    stack->top = cell->next;
+
+    cell->next = stack->free_list;
+    stack->free_list = cell;
+
+    *mark = cell->mark;
 
     return true;
 }
@@ -204,34 +266,24 @@ static inline bool stack_Dup(Stack_test stack) {
     if (!stack)      return false;
     if (!stack->top) return false;
 
-    Cell_test cell = stack->top;
+    Cell_test top  = stack->top;
+    Cell_test cell = stack->free_list;
 
-    stack_Push(stack, cell->value);
+    if (cell) {
+        stack->free_list = cell->next;
+    } else {
+        if (!cell_Create(&cell)) return false;
+    }
 
-    return true;
-}
+    cell->next = stack->top;
+    stack->top = cell;
 
-static inline bool stack_Swap(Stack_test stack) {
-    if (!stack)      return false;
-    if (!stack->top) return false;
-
-    Cell_test stk1 = stack->top;
-
-    if (!stk1->next) return false;
-
-    Cell_test stk2 = stk1->next;
-    Cell_test stk3 = stk2->next;
-
-    stk1->next = stk3;
-    stk2->next = stk1;
-    stack->top = stk2;
-
-    fprintf(stderr, "swap\n");
+    cell->value = top->value;
 
     return true;
 }
 
-static inline bool node_Create(Node_test *target, unsigned type, unsigned size, Stack_test stack) {
+static inline bool node_Create(Node_test *target, const CuData name, unsigned size, Stack_test stack) {
     if (!target) return false;
 
     unsigned fullsize = sizeof(struct test_node) + (sizeof(Node_test) * size);
@@ -240,7 +292,7 @@ static inline bool node_Create(Node_test *target, unsigned type, unsigned size, 
 
     if (!result) return false;
 
-    result->type = type;
+    result->type = symbol_Make(name);
     result->size = size;
 
     if (0 >= size) {
@@ -249,7 +301,7 @@ static inline bool node_Create(Node_test *target, unsigned type, unsigned size, 
     }
 
     for ( ; size-- ; ) {
-        if (!stack_Pop(stack, &result->childern[size])) return false;
+        if (!stack_PopNode(stack, &result->childern[size])) return false;
     }
 
     *target = result;

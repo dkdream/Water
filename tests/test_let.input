@@ -1,0 +1,6 @@
+Let: [
+ LetAssign: [
+   Value: [ "one" ]
+   ParameterName: [ Symbol: [ one ] ]
+ ]
+]

@@ -217,6 +217,10 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
         H2oUserType type = fetch_code(action);
         if (!type) return false;
         indent(); H2O_DEBUG(2, "testing root %s\n", action->name);
+        if (0 == water->cursor.current) {
+            indent(); H2O_DEBUG(2, "testing root %s - false\n", action->name);
+            return false;
+        }
         if (!(water->match)(water, type, water->cursor.current)) {
             indent(); H2O_DEBUG(2, "testing root %s - false\n", action->name);
             return false;
@@ -230,8 +234,9 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
         H2oChain chain = (H2oChain) start;
         struct water_marker marker;
         if (!mark(&marker)) return false;
-        if (!call_with(chain->before)) return false;
-        if (call_with(chain->after))   return true;
+        if (call_with(chain->before)) {
+            if (call_with(chain->after)) return true;
+        }
         reset(&marker);
         return false;
     }
@@ -315,6 +320,13 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
         if (!call_with(chain->before)) return false;
         if (next_node()) {
             if (call_with(chain->after)) return true;
+        } else {
+            H2oUserNode hold = water->cursor.current;
+            water->cursor.current = 0;
+            if (call_with(chain->after)) {
+                water->cursor.current = hold;
+                return true;
+            }
         }
         reset(&marker);
         return false;

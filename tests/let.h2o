@@ -2,6 +2,6 @@ Start     = Let | AnyTree | AnyLeaf
 Let       = Let: ->@begin [ ( LetAssign )+,  ( Start )* ] @end
 LetAssign = LetAssign:[ Value, ParameterName:[Symbol] ] @assign
 Value     = Value: ->@value
-Symbol    = Symbol: ->@symbol []
+Symbol    = Symbol: ->@symbol
 AnyTree   = %any ->@begin [ ( Start )* ] @end
 AnyLeaf   = %any ->@statement [ ]
