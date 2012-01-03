@@ -15,14 +15,16 @@ COLORTERM := dump
 HERE      := $(shell pwd)
 
 ##
-COPPER     := /tools/Copper/bin/copper
-COPPER_INC := -I/tools/Copper/include
-COPPER_LIB := -L/tools/Copper/lib -lCopper
+CU_PREFIX  := /tools/Copper
+COPPER     := $(CU_PREFIX)/bin/copper
+COPPER_LIB := -L$(CU_PREFIX)/lib -lCopper
+COPPER_INC := -I$(CU_PREFIX)/include
 
 ##
-WATER     := ../water.vm
-WATER_INC := -I/tools/Water/include
-WATER_LIB := -L/tools/Water/lib -lWater
+H2O_PREFIX := /tools/Water
+WATER      := $(H2O_PREFIX)/bin/water
+WATER_INC  := -I$(H2O_PREFIX)/include
+WATER_LIB  := -L$(H2O_PREFIX)/lib -lWater
 #
 #
 #

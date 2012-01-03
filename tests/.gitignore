@@ -2,3 +2,5 @@
 .depends
 *~
 let.c
+tree.c
+

@@ -26,13 +26,10 @@ DEPENDS   :=
 PATH := $(HERE):$(PATH)
 
 ##
-COPPER     := /tools/Copper/bin/copper
-COPPER_LIB := -L/tools/Copper/lib -lCopper
-COPPER_INC := -I/tools/Copper/include
-##
-MERCURY     := /tools/Mercury/bin/mercury
-MERCURY_INC := -I/tools/Mercury/include
-MERCURY_LIB := -L/tools/Mercury/lib -lMercury
+CU_PREFIX  := /tools/Copper
+COPPER     := $(CU_PREFIX)/bin/copper
+COPPER_LIB := -L$(CU_PREFIX)/lib -lCopper
+COPPER_INC := -I$(CU_PREFIX)/include
 
 #
 #
