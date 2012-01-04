@@ -4,4 +4,4 @@ LetAssign = LetAssign:[ Value, ParameterName:[Symbol] ] @assign
 Value     = Value: ->@value
 Symbol    = Symbol: ->@symbol
 AnyTree   = %any ->@begin [ ( Start )* ] @end
-AnyLeaf   = %any ->@statement [ ]
+AnyLeaf   = %any ->@statement %leaf

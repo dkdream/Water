@@ -25,13 +25,16 @@ test_node = IDENTIFIER
 
 node_value = leaf | tree | root
 
-##         call-on-desent                       call-on-assent
-leaf = label ( assign )? SOPEN SCLOSE       @leaf
+leaf = label ( assign )? LEAF @leaf
+     | label LEAF ( assign )? @leaf
 tree = label ( assign )? SOPEN regex SCLOSE @tree ( apply )?
 root = label ( assign )?
 
+## call-on-desent event
 assign = ASSIGN EVENT @assign
-apply  =        EVENT @and
+
+## call-on-assent event
+apply  = EVENT @and
 
 regex    = choice   ( COMMA regex  @tuple  )?
 choice   = sequence ( BAR   choice @select )?
@@ -47,7 +50,7 @@ operator = STAR     @zero_plus
          | COPEN NUMBER DASH NUMBER CCLOSE @range
 
 label     = LABEL | predicate
-predicate = ANY   | PREDICATE
+predicate = ANY   | !LEAF PREDICATE
 
 IDENTIFIER = NAME !EQUAL @identifier
 NAME       =     < name-head name-tail > !( ':' ) -
@@ -57,6 +60,7 @@ PREDICATE  = '%' < name-head name-tail >          - @predicate
 NUMBER     = < [0-9]+ > @number -
 
 ASSIGN   = '->' blank?
+LEAF     = '%leaf' -
 EQUAL    = '=' -
 STAR     = '*' -
 PLUS     = '+' -
@@ -72,6 +76,7 @@ CCLOSE   = '}' -
 AND      = '&' -
 NOT      = '!' -
 ANY      = '%any' - @any
+
 
 
 name-head  = ( [a-zA-Z] )+
