@@ -36,9 +36,9 @@ COPPER_INC := -I$(CU_PREFIX)/include
 #
 GCC      := gcc
 DBFLAGS  := -ggdb -Wall -mtune=i686
-INCFLAGS := $(COPPER_INC) $(COPPER_INC)
-CFLAGS   := $(DBFLAGS) $(INCFLAG) 
-LIBFLAGS := $(COPPER_LIB) $(MERCURY_LIB)
+INCFLAGS := $(COPPER_INC)
+CFLAGS   := $(DBFLAGS) $(INCFLAGS) 
+LIBFLAGS := $(COPPER_LIB)
 #
 AR       := ar
 ARFLAGS  := rcu
@@ -133,8 +133,7 @@ water_ver.h : FORCE
 ##
 
 %.o : %.c
-	@echo $(GCC) $(DBFLAGS) -c -o $@ $<
-	@$(GCC) $(CFLAGS) -c -o $@ $<
+	$(GCC) $(CFLAGS) -c -o $@ $<
 
 %.c : %.cu $(COPPER)
 	$(COPPER) --name $(@:%.c=%_graph) --output $@ --file $<
