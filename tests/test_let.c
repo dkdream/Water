@@ -259,12 +259,14 @@ static bool run_walker(Node_test value) {
     return true;
 }
 
+#if 0
 static char buffer[4096];
 static const char* convert(CuData name) {
     strncpy(buffer, name.start, name.length);
     buffer[name.length] = 0;
     return buffer;
 }
+#endif
 
 static struct test_stack the_marks;
 static struct test_stack the_trees;
@@ -390,7 +392,7 @@ static bool run_parser(FILE *input) {
     size_t allocated = 0;
 
     for ( ; ; ) {
-        switch(cu_Event(&the_parser, data)) {
+        switch(cu_Event(&the_parser, &data)) {
         case cu_NeedData:
             data.length = getline(&buffer, &allocated, input);
             if (data.length >= 0) {

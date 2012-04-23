@@ -1,5 +1,5 @@
 
-file = _ @begin_childern ( tree )+  @begin_childern end-of-file
+file = _ @begin_childern ( tree )+  @end_childern end-of-file
 
 tree = root begin ( node )+ end @push_tree
 

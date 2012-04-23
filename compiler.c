@@ -1472,26 +1472,6 @@ extern void water_Parse(H2oParser water,
         printf("before parse\n");
     }
 
-#if 0
-    // old Copper
-    if (!cu_Parse("file", (Copper) water)) {
-        cu_SyntaxError(stderr,
-                       (Copper) water,
-                       water->buffer.filename);
-        return;
-    }
-
-    if (0 < h2o_global_debug) {
-        printf("before run\n");
-    }
-    if (!cu_RunQueue((Copper) water)) {
-        printf("event error\n");
-    }
-
-    write_Ccode(water, name);
-#else
-    // new Copper
-
     CuData data = { 0, 0 };
 
     if (!cu_Start("file", (Copper) water)) {
@@ -1500,7 +1480,7 @@ extern void water_Parse(H2oParser water,
     }
 
     for ( ; ; ) {
-        switch(cu_Event((Copper) water, data)) {
+        switch(cu_Event((Copper) water, &data)) {
         case cu_NeedData:
             if (!water_MoreData(water, &data)) {
                 printf("read error\n");
@@ -1532,8 +1512,6 @@ extern void water_Parse(H2oParser water,
             return;
         }
     }
-#endif
-
  }
 
 extern bool water_Free(H2oParser water) {
