@@ -212,6 +212,9 @@ struct water_table {
 };
 
 struct water_parser {
+    struct copper_callback callback;
+    struct copper_context  context;
+
     struct copper base;
 
     struct static_table node;

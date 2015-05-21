@@ -13,6 +13,21 @@ BINDIR  = $(PREFIX)/bin
 INCDIR  = $(PREFIX)/include
 LIBDIR  = $(PREFIX)/lib
 
+MACHINE := $(shell uname --machine)
+NOW     := $(shell date +T=%s.%N)
+DATE    := $(shell date +%Y-%b-%d-%a-%I.%M%P)
+
+ARCHFLAG =
+
+ifeq ($(MACHINE),i686)
+ARCHFLAG = -m32
+endif
+
+ifeq ($(MACHINE),x86_64)
+ARCHFLAG = -m64
+endif
+
+
 WATER      := water.vm
 WATER.test := water.vm
 WATER.ext  := hg
@@ -35,7 +50,7 @@ COPPER_INC := -I$(CU_PREFIX)/include
 #
 #
 GCC      := gcc
-DBFLAGS  := -ggdb -Wall -mtune=i686
+DBFLAGS  := -ggdb -Wall $(ARCHFLAG)
 INCFLAGS := $(COPPER_INC)
 CFLAGS   := $(DBFLAGS) $(INCFLAGS) 
 LIBFLAGS := $(COPPER_LIB)

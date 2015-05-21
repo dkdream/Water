@@ -243,7 +243,7 @@ static inline void node_Print(FILE* output, H2oNode value) {
     }
 
     const char* name = type2name(type);
-    fprintf(output, "%s(%x)", name, (unsigned) value.any);
+    fprintf(output, "%s(%p)", name, value.any);
 }
 
 static void stack_Print(FILE* output, H2oStack stack) {
@@ -493,7 +493,7 @@ static bool water_MoreData(H2oParser water, CuData *target)
     }
 
     if (0 < h2o_global_debug) {
-        unsigned line_number = water->base.cursor.line_number + 1;
+        unsigned line_number = water->base.local->cursor.line_number + 1;
         printf("%s[%d] %s", tbuffer->filename, line_number, tbuffer->line);
     }
 
@@ -507,7 +507,7 @@ static bool water_MoreData(H2oParser water, CuData *target)
 }
 #endif
 
-static bool water_FindNode(Copper parser, CuName name, CuNode* target) {
+static bool water_FindNode(CuCallback parser, CuName name, CuNode* target) {
     H2oParser water = (H2oParser) parser;
 
     StaticValue result;
@@ -519,11 +519,11 @@ static bool water_FindNode(Copper parser, CuName name, CuNode* target) {
     return true;
 }
 
-static bool water_FindPredicate(Copper parser, CuName name, CuPredicate* target) {
+static bool water_FindPredicate(CuCallback parser, CuName name, CuPredicate* target) {
     return false;
 }
 
-static bool water_FindEvent(Copper parser, CuName name, CuEvent* target) {
+static bool water_FindEvent(CuCallback parser, CuName name, CuEvent* target) {
     H2oParser water = (H2oParser) parser;
 
     StaticValue result;
@@ -535,7 +535,7 @@ static bool water_FindEvent(Copper parser, CuName name, CuEvent* target) {
     return true;
 }
 
-static bool water_AddName(Copper parser, CuName name, CuNode value) {
+static bool water_AddName(CuCallback parser, CuName name, CuNode value) {
     H2oParser water = (H2oParser) parser;
 
     return stable_Replace(&water->node, name, (StaticValue) value);
@@ -648,7 +648,7 @@ static inline bool make_Text(H2oParser water, H2oType type) {
 
     if (!node_Create(type, &result)) return false;
 
-    if (!cu_MarkedText((Copper) water, &result->value)) return false;
+    if (!cu_MarkedText(water->base.local, &result->value)) return false;
 
     H2oTable table = &water->predicate;
 
@@ -699,7 +699,7 @@ static inline bool make_Branch(H2oParser water, H2oType type) {
 
 /***********************************************************/
 
-static bool declare_event(Copper input, CuCursor location) {
+static bool declare_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "declare";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -708,7 +708,7 @@ static bool declare_event(Copper input, CuCursor location) {
 
     if (!node_Create(water_define, &define)) return false;
 
-    if (!cu_MarkedText((Copper) water, &define->name)) return false;
+    if (!cu_MarkedText(theContext(input), &define->name)) return false;
 
     define->next = water->rule;
 
@@ -721,7 +721,7 @@ static bool declare_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool define_event(Copper input, CuCursor location) {
+static bool define_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "define";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -741,7 +741,7 @@ static bool define_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool identifier_event(Copper input, CuCursor location) {
+static bool identifier_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "identifier";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -753,7 +753,7 @@ static bool identifier_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool label_event(Copper input, CuCursor location) {
+static bool label_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "label";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -765,7 +765,7 @@ static bool label_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool event_event(Copper input, CuCursor location) {
+static bool event_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "event";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -777,7 +777,7 @@ static bool event_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool predicate_event(Copper input, CuCursor location) {
+static bool predicate_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "predicate";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -789,7 +789,7 @@ static bool predicate_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool not_event(Copper input, CuCursor location) {
+static bool not_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "not";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -801,7 +801,7 @@ static bool not_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool assert_event(Copper input, CuCursor location) {
+static bool assert_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "assert";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -813,7 +813,7 @@ static bool assert_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool any_event(Copper input, CuCursor location) {
+static bool any_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "any";
     H2oParser water = (H2oParser) input;
 
@@ -823,7 +823,7 @@ static bool any_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool zero_plus_event(Copper input, CuCursor location) {
+static bool zero_plus_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "zero_plus";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -835,7 +835,7 @@ static bool zero_plus_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool one_plus_event(Copper input, CuCursor location) {
+static bool one_plus_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "one_plus";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -847,7 +847,7 @@ static bool one_plus_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool maybe_event(Copper input, CuCursor location) {
+static bool maybe_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "maybe";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -859,13 +859,13 @@ static bool maybe_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool number_event(Copper input, CuCursor location) {
+static bool number_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "number";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
 
     CuData text;
-    if (!cu_MarkedText(input, &text)) return false;
+    if (!cu_MarkedText(theContext(input), &text)) return false;
 
     unsigned long count = strtoul(text.start, 0, 10);
 
@@ -883,7 +883,7 @@ static bool number_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool range_event(Copper input, CuCursor location) {
+static bool range_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "range";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -914,7 +914,7 @@ static bool range_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool select_event(Copper input, CuCursor location) {
+static bool select_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "select";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -926,7 +926,7 @@ static bool select_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool tuple_event(Copper input, CuCursor location) {
+static bool tuple_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "tuple";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -938,7 +938,7 @@ static bool tuple_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool assign_event(Copper input, CuCursor location) {
+static bool assign_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "tuple";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -950,7 +950,7 @@ static bool assign_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool leaf_event(Copper input, CuCursor location) {
+static bool leaf_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "leaf";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -963,7 +963,7 @@ static bool leaf_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool tree_event(Copper input, CuCursor location) {
+static bool tree_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "tree";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -976,7 +976,7 @@ static bool tree_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool and_event(Copper input, CuCursor location) {
+static bool and_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "and";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -988,7 +988,7 @@ static bool and_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool or_event(Copper input, CuCursor location) {
+static bool or_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "or";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -1000,7 +1000,7 @@ static bool or_event(Copper input, CuCursor location) {
     (void) event_name;
 }
 
-static bool sequence_event(Copper input, CuCursor location) {
+static bool sequence_event(Copper input, CuCursor location, CuName name) {
     const char *event_name = "sequence";
     H2oParser water = (H2oParser) input;
     print_State(water, true, "%s", event_name);
@@ -1379,24 +1379,26 @@ static bool write_Ccode(H2oParser water,
 /*------------------------------------------------------------*/
 
 /* from water.c */
-extern bool water_graph(Copper input);
+extern bool water_graph(CuCallback input, FindNode find, AddName add);
 
 static bool water_Init(H2oParser water) {
     memset(water, 0, sizeof(struct water_parser));
 
-    water->base.node      = water_FindNode;
-    water->base.attach    = water_AddName;
-    water->base.predicate = water_FindPredicate;
-    water->base.event     = water_FindEvent;
+    water->base.global = &(water->callback);
+    water->base.local  = &(water->context);
 
-    if (!cu_InputInit(&water->base, 1024)) return false;
+    water->base.global->node      = water_FindNode;
+    water->base.global->predicate = water_FindPredicate;
+    water->base.global->event     = water_FindEvent;
+
+    if (!cu_InputInit(water->base.local, 1024)) return false;
 
     if (!stable_Init(1024, &water->node))      return false;
     if (!stable_Init(1024, &water->action))   return false;
     if (!stack_Init(100,   &water->stack))     return false;
 
     water_SetEvent(water, "and",        and_event);
-    water_SetEvent(water, "any",       any_event);
+    water_SetEvent(water, "any",        any_event);
     water_SetEvent(water, "assert",     assert_event);
     water_SetEvent(water, "assign",     assign_event);
     water_SetEvent(water, "declare",    declare_event);
@@ -1423,7 +1425,7 @@ static bool water_Init(H2oParser water) {
     if (!table_Init(&water->label))      return false;
     if (!table_Init(&water->predicate))  return false;
 
-    water_graph((Copper) water);
+    water_graph(water->base.global, water_FindNode, water_AddName);
 
     return true;
 }
@@ -1474,13 +1476,13 @@ extern void water_Parse(H2oParser water,
 
     CuData data = { 0, 0 };
 
-    if (!cu_Start("file", (Copper) water)) {
+    if (!cu_Start("file", &(water->base))) {
         printf("start error\n");
         return;
     }
 
     for ( ; ; ) {
-        switch(cu_Event((Copper) water, &data)) {
+        switch(cu_Event(&(water->base), &data)) {
         case cu_NeedData:
             if (!water_MoreData(water, &data)) {
                 printf("read error\n");
@@ -1493,7 +1495,7 @@ extern void water_Parse(H2oParser water,
                 printf("before run\n");
             }
 
-            if (!cu_RunQueue((Copper) water)) {
+            if (!cu_RunQueue(&(water->base))) {
                 printf("event error\n");
             }
 
@@ -1502,7 +1504,7 @@ extern void water_Parse(H2oParser water,
 
         case cu_NoPath:
             cu_SyntaxError(stderr,
-                           (Copper) water,
+                           water->base.local,
                            water->buffer.filename);
             return;
 

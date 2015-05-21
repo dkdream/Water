@@ -283,7 +283,7 @@ static bool push_tree(const char *name, unsigned childern) {
     return stack_PushNode(&the_trees, value);
 }
 
-static bool begin_childern_event(Copper   file __attribute__ ((unused)),
+static bool begin_childern_event(CuContext   file __attribute__ ((unused)),
                                  CuCursor at   __attribute__ ((unused)))
 {
     size_t depth = 0;
@@ -293,12 +293,12 @@ static bool begin_childern_event(Copper   file __attribute__ ((unused)),
 
     return true;
 }
-static bool end_childern_event(Copper   file __attribute__ ((unused)),
+static bool end_childern_event(CuContext   file __attribute__ ((unused)),
                                CuCursor at   __attribute__ ((unused)))
 {
     size_t bottom  = 0;
     size_t current = 0;
-    size_t delta   = 0;
+    //    size_t delta   = 0;
 
     stack_PopMark(&the_marks, &bottom);
     stack_Depth(&the_trees, &current);
@@ -309,7 +309,7 @@ static bool end_childern_event(Copper   file __attribute__ ((unused)),
 
     return push_tree("Block", current - bottom);
 }
-static bool push_tree_event(Copper   file __attribute__ ((unused)),
+static bool push_tree_event(CuContext   file __attribute__ ((unused)),
                             CuCursor at   __attribute__ ((unused)))
 {
     Node_test block;
@@ -324,7 +324,7 @@ static bool push_tree_event(Copper   file __attribute__ ((unused)),
 
     return stack_PushNode(&the_trees, block);
 }
-static bool push_symbol_event(Copper   file,
+static bool push_symbol_event(CuContext   file,
                               CuCursor at   __attribute__ ((unused)))
 {
     CuData    cname;
@@ -336,13 +336,13 @@ static bool push_symbol_event(Copper   file,
 
     return stack_PushNode(&the_trees, value);
 }
-static bool push_string_event(Copper file, CuCursor at)
+static bool push_string_event(CuContext file, CuCursor at)
 {
     push_symbol_event(file, at);
 
     return push_tree("String", 1);
 }
-static bool push_number_event(Copper file, CuCursor at)
+static bool push_number_event(CuContext file, CuCursor at)
 {
     push_symbol_event(file, at);
 

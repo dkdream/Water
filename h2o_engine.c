@@ -78,9 +78,9 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
     inline bool mark(H2oMaker marker)  {
         if (!marker) return false;
         indent();
-        H2O_DEBUG(2, "setting marker %x %x\n",
-                  (unsigned) water->cursor.current,
-                  (unsigned) water->end);
+        H2O_DEBUG(2, "setting marker %p %p\n",
+                  water->cursor.current,
+                  water->end);
         marker->location = water->cursor;
         marker->end      = water->end;
         return true;
@@ -112,9 +112,9 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
         }
 
         indent();
-        H2O_DEBUG(2, "resetting marker %x %x\n",
-                  (unsigned) water->cursor.current,
-                  (unsigned) water->end);
+        H2O_DEBUG(2, "resetting marker %p %p\n",
+                  water->cursor.current,
+                  water->end);
 
         return true;
     }
@@ -132,18 +132,18 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
     inline bool next_node() {
         struct water_location check = water->cursor;
         indent();
-        H2O_DEBUG(2, "check next node %x[%u] -> %x\n",
-                  (unsigned) check.root,
-                  (unsigned) check.offset,
-                  (unsigned) check.current);
+        H2O_DEBUG(2, "check next node %p[%p] -> %p\n",
+                  check.root,
+                  check.offset,
+                  check.current);
 
         if (!fetch_next(&check)) return false;
         water->cursor = check;
         indent();
-        H2O_DEBUG(2, "next node %x[%u] -> %x\n",
-                  (unsigned) check.root,
-                  (unsigned) check.offset,
-                  (unsigned) check.current);
+        H2O_DEBUG(2, "next node %p[%p] -> %p\n",
+                  check.root,
+                  check.offset,
+                  check.current);
         return true;
     }
 
@@ -184,7 +184,7 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
         H2oEvent event = fetch_code(action);
         if (!event) return false;
 
-        indent(); H2O_DEBUG(2, "adding event --  %s %x\n", action->name, (unsigned) water->cursor.current);
+        indent(); H2O_DEBUG(2, "adding event --  %s %p\n", action->name, water->cursor.current);
 
         H2oThread value = water->free_list;
         if (!value) {
@@ -285,10 +285,10 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
         if (!swap_location(&here)) return false;
 
         indent();
-        H2O_DEBUG(2, "first node %x[%u] -> %x\n",
-                  (unsigned) water->cursor.root,
-                  (unsigned) water->cursor.offset,
-                  (unsigned) water->cursor.current);
+        H2O_DEBUG(2, "first node %p[%p] -> %p\n",
+                  water->cursor.root,
+                  water->cursor.offset,
+                  water->cursor.current);
 
         bool result = call_with(function->argument);
 
@@ -465,11 +465,11 @@ static bool water_vm(Water water, unsigned level, H2oCode start)
     assert(0 != water);
     assert(0 != start);
 
-    indent(); H2O_DEBUG(2, "operation %s %s on %x\n", oper2text(start->oper), start->label, (unsigned) water->cursor.current);
+    indent(); H2O_DEBUG(2, "operation %s %s on %p\n", oper2text(start->oper), start->label, water->cursor.current);
 
     bool result = run_code();
 
-    indent(); H2O_DEBUG(2, "operation %s %s on %x - %s\n", oper2text(start->oper), start->label, (unsigned) water->cursor.current,
+    indent(); H2O_DEBUG(2, "operation %s %s on %p - %s\n", oper2text(start->oper), start->label, water->cursor.current,
                         (result ? "true" : "false"));
 
     return result;
